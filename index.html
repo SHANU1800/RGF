@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RITGAMES - Loading...</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            background: radial-gradient(circle at 20% 20%, #8ea7ff 0%, #556fdb 38%, #2c3372 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: -20%;
+            background: conic-gradient(from 120deg, rgba(255,255,255,0.14), rgba(255,255,255,0.02), rgba(255,255,255,0.14));
+            animation: drift 14s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+        .loading {
+            text-align: center;
+            color: white;
+            padding: 30px 36px;
+            border-radius: 22px;
+            background: rgba(9, 16, 48, 0.38);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 26px 55px rgba(6, 11, 38, 0.45);
+            animation: riseIn 520ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .loading h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            letter-spacing: 0.08em;
+            text-shadow: 0 6px 18px rgba(7, 16, 45, 0.6);
+        }
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.28);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 46px;
+            height: 46px;
+            animation: spin 0.95s linear infinite;
+            margin: 0 auto 20px;
+            box-shadow: 0 0 24px rgba(255, 255, 255, 0.35);
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes riseIn {
+            from { opacity: 0; transform: translateY(14px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes drift {
+            from { transform: translate(-3%, -2%) rotate(0deg); }
+            to { transform: translate(3%, 2%) rotate(12deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .loading, .spinner, body::before {
+                animation: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <h1> RITGAMES</h1>
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+    <script>
+        const API_BASE = '/api';
+        
+        async function checkAndRedirect() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/me/`, {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('displayName', data.display_name || data.gamer_id);
+                    localStorage.setItem('gamerId', data.gamer_id);
+                    // Check if already in a party
+                    const partyCode = localStorage.getItem('partyCode');
+                    if (partyCode) {
+                        window.location.href = `dashboard.html?party=${partyCode}`;
+                    } else {
+                        window.location.href = 'party.html';
+                    }
+                } else {
+                    window.location.href = 'login.html';
+                }
+            } catch (error) {
+                window.location.href = 'login.html';
+            }
+        }
+        
+        checkAndRedirect();
+    </script>
+</body>
+</html>

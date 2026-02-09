@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dots and Boxes - RITGAMES</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 800px;
+            padding: 30px;
+        }
+        .game-header { text-align: center; margin-bottom: 20px; }
+        .game-header h1 { font-size: 2em; color: #9b59b6; }
+        .room-info {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 15px; background: #f8f9fa; border-radius: 10px; margin-bottom: 15px;
+        }
+        .connection-status { padding: 5px 15px; border-radius: 20px; font-size: 0.9em; font-weight: bold; }
+        .status-connected { background: #d4edda; color: #155724; }
+        .status-disconnected { background: #f8d7da; color: #721c24; }
+        
+        .lobby-screen { text-align: center; }
+        .players-list { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0; }
+        .player-item { padding: 10px 20px; border-radius: 10px; font-weight: bold; }
+        
+        .btn {
+            padding: 12px 30px; border: none; border-radius: 8px;
+            font-size: 1.1em; font-weight: bold; cursor: pointer; margin: 5px;
+        }
+        .btn-primary { background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); color: white; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary { background: #6c757d; color: white; }
+
+        .game-screen { display: none; }
+        
+        .scoreboard {
+            display: flex; justify-content: space-around; margin-bottom: 20px;
+            padding: 15px; background: #f8f9fa; border-radius: 10px;
+        }
+        .player-score { text-align: center; padding: 10px 20px; border-radius: 10px; }
+        .player-score.active { box-shadow: 0 0 10px rgba(155,89,182,0.5); }
+        .player-score .name { font-weight: bold; margin-bottom: 5px; }
+        .player-score .score { font-size: 2em; font-weight: bold; }
+        
+        .game-board {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 0; margin: 20px auto; width: fit-content;
+        }
+        .board-row { display: flex; align-items: center; }
+        
+        .dot {
+            width: 15px; height: 15px; background: #333; border-radius: 50%;
+        }
+        .h-line {
+            width: 50px; height: 8px; background: #ddd; cursor: pointer;
+            transition: all 0.2s; margin: 0 2px;
+        }
+        .h-line:hover:not(.taken) { background: #9b59b6; opacity: 0.5; }
+        .h-line.taken { cursor: default; }
+        
+        .v-line {
+            width: 8px; height: 50px; background: #ddd; cursor: pointer;
+            transition: all 0.2s; margin: 2px 0;
+        }
+        .v-line:hover:not(.taken) { background: #9b59b6; opacity: 0.5; }
+        .v-line.taken { cursor: default; }
+        
+        .box {
+            width: 50px; height: 50px; display: flex; align-items: center;
+            justify-content: center; font-size: 1.5em; font-weight: bold;
+        }
+        
+        .middle-row { display: flex; align-items: center; }
+        .spacer { width: 15px; }
+        
+        .game-status {
+            text-align: center; padding: 15px; border-radius: 10px;
+            font-size: 1.2em; font-weight: bold; margin-top: 20px;
+        }
+        .status-your-turn { background: #d4edda; color: #155724; }
+        .status-waiting { background: #fff3cd; color: #856404; }
+        
+        .player-colors { display: flex; gap: 10px; justify-content: center; margin: 10px 0; }
+        .color-indicator { width: 20px; height: 20px; border-radius: 50%; display: inline-block; }
+        
+        .hidden { display: none !important; }
+        .error-message { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 10px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>🔲 Dots and Boxes</h1>
+        </div>
+        <div class="room-info">
+            <div class="room-code">Room: <span id="roomCodeDisplay">---</span></div>
+            <div class="connection-status status-disconnected" id="connectionStatus">Connecting...</div>
+        </div>
+
+        <div class="lobby-screen" id="lobbyScreen">
+            <h2>Waiting for Players...</h2>
+            <div class="players-list" id="playersList"></div>
+            <p id="playerCount">0 / 4 Players</p>
+            <button class="btn btn-primary" id="startGameBtn" onclick="startGame()" disabled>Start Game</button>
+            <button class="btn btn-secondary" onclick="leaveRoom()">Leave Room</button>
+        </div>
+
+        <div class="game-screen" id="gameScreen">
+            <div class="scoreboard" id="scoreboard"></div>
+            <div class="game-board" id="gameBoard"></div>
+            <div class="game-status" id="gameStatus">Waiting...</div>
+            
+            <div id="gameOverSection" class="hidden" style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="playAgain()">Play Again</button>
+                <button class="btn btn-secondary" onclick="leaveRoom()">Leave Room</button>
+            </div>
+        </div>
+
+        <div class="error-message hidden" id="errorMessage"></div>
+    </div>
+
+    <script>
+        const GRID_SIZE = 5; // 5x5 dots = 4x4 boxes
+        const PLAYER_COLORS = ['#e74c3c', '#3498db', '#27ae60', '#f39c12'];
+        
+        let ws = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        let heartbeatTimer = null;
+        let shouldReconnect = true;
+        let gameState = {
+            roomCode: null, playerId: null, nickname: null,
+            hLines: [], vLines: [], boxes: [],
+            players: [], currentTurn: null, scores: {}
+        };
+
+        function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            gameState.roomCode = urlParams.get('code');
+            if (!gameState.roomCode) { showError('No room code provided'); return; }
+            document.getElementById('roomCodeDisplay').textContent = gameState.roomCode;
+
+            const roomData = JSON.parse(localStorage.getItem(`room_${gameState.roomCode}`) || '{}');
+            gameState.playerId = roomData.member_id;
+            gameState.nickname = roomData.nickname || 'Player';
+            if (!gameState.playerId) { showError('Player data not found. Please join from dashboard.'); return; }
+            
+            initBoard();
+            connectWebSocket();
+        }
+
+        function initBoard() {
+            // Initialize empty lines and boxes
+            for (let i = 0; i < GRID_SIZE; i++) {
+                gameState.hLines[i] = [];
+                for (let j = 0; j < GRID_SIZE - 1; j++) {
+                    gameState.hLines[i][j] = null;
+                }
+            }
+            for (let i = 0; i < GRID_SIZE - 1; i++) {
+                gameState.vLines[i] = [];
+                gameState.boxes[i] = [];
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    gameState.vLines[i][j] = null;
+                }
+                for (let j = 0; j < GRID_SIZE - 1; j++) {
+                    gameState.boxes[i][j] = null;
+                }
+            }
+        }
+
+        function getWsBaseUrl() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsHost = window.location.port === '3000' ? 'localhost:8000' : window.location.host;
+            return `${wsProtocol}//${wsHost}`;
+        }
+
+        function startHeartbeat() {
+            stopHeartbeat();
+            heartbeatTimer = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+                }
+            }, 5000);
+        }
+
+        function stopHeartbeat() {
+            if (heartbeatTimer) {
+                clearInterval(heartbeatTimer);
+                heartbeatTimer = null;
+            }
+        }
+
+        function scheduleReconnect() {
+            if (!shouldReconnect) return;
+            if (reconnectAttempts >= maxReconnectAttempts) return;
+            const delay = 1000 * Math.pow(2, reconnectAttempts);
+            reconnectAttempts += 1;
+            setTimeout(connectWebSocket, delay);
+        }
+
+        function connectWebSocket() {
+            if (!shouldReconnect) return;
+            const wsUrl = `${getWsBaseUrl()}/ws/dots/${gameState.roomCode}/`;
+            ws = new WebSocket(wsUrl);
+            ws.onopen = () => {
+                reconnectAttempts = 0;
+                updateConnectionStatus(true);
+                startHeartbeat();
+                ws.send(JSON.stringify({ type: 'join', nickname: gameState.nickname, player_id: gameState.playerId }));
+            };
+            ws.onmessage = (e) => handleMessage(JSON.parse(e.data));
+            ws.onerror = () => showError('Connection error');
+            ws.onclose = () => {
+                stopHeartbeat();
+                updateConnectionStatus(false);
+                scheduleReconnect();
+            };
+        }
+
+        function handleMessage(data) {
+            console.log('Received:', data);
+            switch(data.type) {
+                case 'lobby_update': updateLobby(data.lobby_state); break;
+                case 'game_start': startGameScreen(data); break;
+                case 'game_state': updateGameState(data); break;
+                case 'line_drawn': onLineDrawn(data); break;
+                case 'game_over': onGameOver(data); break;
+                case 'error': showError(data.message); break;
+            }
+        }
+
+        function updateLobby(lobby) {
+            gameState.players = lobby.players;
+            document.getElementById('playersList').innerHTML = lobby.players.map((p, i) => 
+                `<div class="player-item" style="background: ${PLAYER_COLORS[i]}; color: white;">${p.nickname}</div>`
+            ).join('');
+            document.getElementById('playerCount').textContent = `${lobby.player_count} / ${lobby.max_players} Players`;
+            document.getElementById('startGameBtn').disabled = lobby.player_count < 2;
+        }
+
+        function startGame() { ws.send(JSON.stringify({ type: 'start_game' })); }
+
+        function startGameScreen(data) {
+            document.getElementById('lobbyScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            updateGameState(data);
+        }
+
+        function updateGameState(data) {
+            if (data.h_lines) gameState.hLines = data.h_lines;
+            if (data.v_lines) gameState.vLines = data.v_lines;
+            if (data.boxes) gameState.boxes = data.boxes;
+            if (data.current_turn !== undefined) gameState.currentTurn = data.current_turn;
+            if (data.players) gameState.players = data.players;
+            if (data.scores) gameState.scores = data.scores;
+            renderGame();
+        }
+
+        function renderGame() {
+            renderScoreboard();
+            renderBoard();
+            updateStatus();
+        }
+
+        function renderScoreboard() {
+            document.getElementById('scoreboard').innerHTML = gameState.players.map((p, i) => `
+                <div class="player-score ${gameState.currentTurn === p.id ? 'active' : ''}" 
+                     style="border: 3px solid ${PLAYER_COLORS[i]}">
+                    <div class="name" style="color: ${PLAYER_COLORS[i]}">${p.nickname}</div>
+                    <div class="score" style="color: ${PLAYER_COLORS[i]}">${gameState.scores[p.id] || 0}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderBoard() {
+            let html = '';
+            for (let row = 0; row < GRID_SIZE; row++) {
+                // Dots and horizontal lines row
+                html += '<div class="board-row">';
+                for (let col = 0; col < GRID_SIZE; col++) {
+                    html += '<div class="dot"></div>';
+                    if (col < GRID_SIZE - 1) {
+                        const owner = gameState.hLines[row]?.[col];
+                        const color = owner ? PLAYER_COLORS[gameState.players.findIndex(p => p.id === owner)] : '';
+                        html += `<div class="h-line ${owner ? 'taken' : ''}" 
+                            style="${owner ? `background: ${color}` : ''}"
+                            onclick="drawLine('h', ${row}, ${col})"></div>`;
+                    }
+                }
+                html += '</div>';
+                
+                // Vertical lines and boxes row
+                if (row < GRID_SIZE - 1) {
+                    html += '<div class="middle-row">';
+                    for (let col = 0; col < GRID_SIZE; col++) {
+                        const owner = gameState.vLines[row]?.[col];
+                        const color = owner ? PLAYER_COLORS[gameState.players.findIndex(p => p.id === owner)] : '';
+                        html += `<div class="v-line ${owner ? 'taken' : ''}"
+                            style="${owner ? `background: ${color}` : ''}"
+                            onclick="drawLine('v', ${row}, ${col})"></div>`;
+                        
+                        if (col < GRID_SIZE - 1) {
+                            const boxOwner = gameState.boxes[row]?.[col];
+                            const boxColor = boxOwner ? PLAYER_COLORS[gameState.players.findIndex(p => p.id === boxOwner)] : '';
+                            html += `<div class="box" style="background: ${boxOwner ? boxColor + '40' : 'transparent'}">
+                                ${boxOwner ? '★' : ''}
+                            </div>`;
+                        }
+                    }
+                    html += '</div>';
+                }
+            }
+            document.getElementById('gameBoard').innerHTML = html;
+        }
+
+        function updateStatus() {
+            const isMyTurn = gameState.currentTurn === gameState.playerId;
+            const statusEl = document.getElementById('gameStatus');
+            if (isMyTurn) {
+                statusEl.textContent = "Your Turn - Click a line!";
+                statusEl.className = 'game-status status-your-turn';
+            } else {
+                const current = gameState.players.find(p => p.id === gameState.currentTurn);
+                statusEl.textContent = `${current?.nickname || 'Someone'}'s turn`;
+                statusEl.className = 'game-status status-waiting';
+            }
+        }
+
+        function drawLine(type, row, col) {
+            if (gameState.currentTurn !== gameState.playerId) return;
+            const lines = type === 'h' ? gameState.hLines : gameState.vLines;
+            if (lines[row]?.[col]) return; // Already taken
+            
+            ws.send(JSON.stringify({ type: 'draw_line', line_type: type, row, col }));
+        }
+
+        function onLineDrawn(data) { updateGameState(data); }
+
+        function onGameOver(data) {
+            if (data.winner_id === 'tie') {
+                document.getElementById('gameStatus').textContent = "It's a tie!";
+            } else {
+                const winner = gameState.players.find(p => p.id === data.winner_id);
+                document.getElementById('gameStatus').textContent = 
+                    data.winner_id === gameState.playerId ? '🎉 You Won!' : `${winner?.nickname || 'Someone'} Wins!`;
+            }
+            document.getElementById('gameOverSection').classList.remove('hidden');
+        }
+
+        function playAgain() { ws.send(JSON.stringify({ type: 'play_again' })); }
+        function leaveRoom() { 
+            shouldReconnect = false;
+            stopHeartbeat();
+            const returnPartyCode = localStorage.getItem('returnPartyCode');
+            const roomCode = gameState.roomCode;
+            if (roomCode) {
+                localStorage.removeItem(`room_${roomCode}`);
+            }
+            if (ws) ws.close(); 
+            if (returnPartyCode) {
+                window.location.href = `dashboard.html?party=${returnPartyCode}`;
+            } else {
+                window.location.href = 'dashboard.html';
+            }
+        }
+        function updateConnectionStatus(connected) {
+            const el = document.getElementById('connectionStatus');
+            el.textContent = connected ? 'Connected' : 'Disconnected';
+            el.className = 'connection-status ' + (connected ? 'status-connected' : 'status-disconnected');
+        }
+        function showError(msg) { 
+            document.getElementById('errorMessage').textContent = msg;
+            document.getElementById('errorMessage').classList.remove('hidden');
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

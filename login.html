@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - RITGAMES</title>
+    <style>
+        :root {
+            --bg-top: #7b90ff;
+            --bg-mid: #5b6fd5;
+            --bg-deep: #26306a;
+            --accent: #667eea;
+            --accent-strong: #5a73e6;
+            --text: #22253f;
+            --muted: #6d7498;
+            --ring: rgba(102, 126, 234, 0.24);
+            --ease: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            background: radial-gradient(circle at 20% 20%, var(--bg-top) 0%, var(--bg-mid) 40%, var(--bg-deep) 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: -28%;
+            background: conic-gradient(from 110deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.16));
+            animation: floatGlow 16s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 20px;
+            box-shadow: 0 24px 50px rgba(16, 22, 61, 0.35);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            backdrop-filter: blur(10px);
+            animation: popIn 560ms var(--ease);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: var(--accent);
+            font-size: 2.5em;
+            margin-bottom: 5px;
+            letter-spacing: 0.03em;
+        }
+
+        .logo p {
+            color: var(--muted);
+            font-size: 0.9em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text);
+            font-weight: bold;
+            font-size: 0.95em;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="email"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 180ms var(--ease), box-shadow 180ms var(--ease), transform 180ms var(--ease);
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        input[type="email"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--ring);
+            transform: translateY(-1px);
+        }
+
+        .form-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            color: #999;
+            transition: color 200ms var(--ease), border-color 200ms var(--ease), transform 200ms var(--ease);
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeLift 280ms var(--ease);
+        }
+
+        .button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 220ms var(--ease), box-shadow 220ms var(--ease), filter 220ms var(--ease);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, #7c58c8 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 12px 22px rgba(102, 126, 234, 0.38);
+            filter: saturate(1.06);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            margin-left: 5px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.85em;
+            color: var(--muted);
+        }
+
+        .quick-play {
+            margin-bottom: 25px;
+        }
+
+        .btn-quick {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            transition: transform 220ms var(--ease), box-shadow 220ms var(--ease), filter 220ms var(--ease);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-quick:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 14px 25px rgba(17, 153, 142, 0.38);
+            filter: saturate(1.06);
+        }
+
+        .btn-quick:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .divider span {
+            padding: 0 15px;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: translateY(16px) scale(0.985); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes fadeLift {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes floatGlow {
+            from { transform: translate(-2%, -2%) rotate(0deg); }
+            to { transform: translate(2%, 2%) rotate(12deg); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>🎮 RITGAMES</h1>
+            <p>Multi-Game Platform</p>
+        </div>
+
+        <!-- Quick Play Button -->
+        <div class="quick-play">
+            <button class="btn-quick" onclick="handleQuickPlay()" id="quick-play-btn">
+                🚀 Just Play!
+            </button>
+        </div>
+
+        <div class="divider"><span>or sign in</span></div>
+
+        <div id="message" class="message"></div>
+
+        <div class="form-tabs">
+            <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+            <button class="tab-btn" onclick="switchTab('register')">Register</button>
+        </div>
+
+        <!-- Login Tab -->
+        <div id="login" class="tab-content active">
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="login-gamer-id">Gamer ID</label>
+                    <input type="text" id="login-gamer-id" placeholder="Enter your gamer ID" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="button btn-primary" id="login-btn">
+                    Login <span class="loading" style="display:none;" id="login-spinner"></span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Register Tab -->
+        <div id="register" class="tab-content">
+            <form onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="register-gamer-id">Gamer ID</label>
+                    <input type="text" id="register-gamer-id" placeholder="Choose a gamer ID" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="register-display-name">Display Name</label>
+                    <input type="text" id="register-display-name" placeholder="Your display name">
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" placeholder="Create a password" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password-confirm">Confirm Password</label>
+                    <input type="password" id="register-password-confirm" placeholder="Confirm password" required>
+                </div>
+                <button type="submit" class="button btn-primary" id="register-btn">
+                    Register <span class="loading" style="display:none;" id="register-spinner"></span>
+                </button>
+            </form>
+        </div>
+
+        <div class="footer">
+            <p>Resume Portfolio Project • Multiplayer Games with Django & WebSocket</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        function switchTab(tab) {
+            // Hide all tabs
+            document.getElementById('login').classList.remove('active');
+            document.getElementById('register').classList.remove('active');
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tab).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Clear message
+            clearMessage();
+        }
+
+        function showMessage(text, type = 'info') {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = 'message ' + type;
+        }
+
+        function clearMessage() {
+            const msg = document.getElementById('message');
+            msg.className = 'message';
+            msg.textContent = '';
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            clearMessage();
+
+            const gamerId = document.getElementById('login-gamer-id').value;
+            const password = document.getElementById('login-password').value;
+            const btn = document.getElementById('login-btn');
+            const spinner = document.getElementById('login-spinner');
+
+            btn.disabled = true;
+            spinner.style.display = 'inline-block';
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        gamer_id: gamerId,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('token', data.token || 'session');
+                    localStorage.setItem('displayName', data.display_name || data.gamer_id);
+                    localStorage.setItem('gamerId', data.gamer_id);
+                    showMessage(`Welcome back, ${data.display_name || data.gamer_id}! Redirecting...`, 'success');
+                    setTimeout(() => {
+                        window.location.href = 'party.html';
+                    }, 1500);
+                } else {
+                    showMessage(data.error || 'Login failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                showMessage('Connection error: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            clearMessage();
+
+            const gamerId = document.getElementById('register-gamer-id').value;
+            const email = document.getElementById('register-email').value;
+            const displayName = document.getElementById('register-display-name').value;
+            const password = document.getElementById('register-password').value;
+            const passwordConfirm = document.getElementById('register-password-confirm').value;
+            const btn = document.getElementById('register-btn');
+            const spinner = document.getElementById('register-spinner');
+
+            // Validation
+            if (password !== passwordConfirm) {
+                showMessage('Passwords do not match!', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showMessage('Password must be at least 6 characters!', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            spinner.style.display = 'inline-block';
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        gamer_id: gamerId,
+                        password: password,
+                        email: email,
+                        display_name: displayName
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('token', data.token || 'session');
+                    localStorage.setItem('displayName', data.display_name || data.gamer_id);
+                    localStorage.setItem('gamerId', data.gamer_id);
+                    showMessage(`Account created! Logging in as ${data.display_name || data.gamer_id}...`, 'success');
+                    setTimeout(() => {
+                        window.location.href = 'party.html';
+                    }, 1500);
+                } else {
+                    showMessage(data.error || Object.values(data)[0] || 'Registration failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                showMessage('Connection error: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Auto-redirect if already logged in
+        async function checkAuth() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/me/`, {
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('displayName', data.display_name || data.gamer_id);
+                    localStorage.setItem('gamerId', data.gamer_id);
+                    window.location.href = 'party.html';
+                }
+            } catch (e) {
+                // Not logged in, stay on login page
+            }
+        }
+
+        async function handleQuickPlay() {
+            const btn = document.getElementById('quick-play-btn');
+            btn.disabled = true;
+            btn.innerHTML = '🚀 Creating guest account...';
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/guest/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('token', data.token || 'session');
+                    localStorage.setItem('displayName', data.display_name || data.gamer_id);
+                    localStorage.setItem('gamerId', data.gamer_id);
+                    btn.innerHTML = '✅ Ready! Redirecting...';
+                    window.location.href = 'party.html';
+                } else {
+                    showMessage(data.error || 'Failed to create guest account', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '🚀 Just Play!';
+                }
+            } catch (error) {
+                showMessage('Connection error: ' + error.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '🚀 Just Play!';
+            }
+        }
+
+        checkAuth();
+    </script>
+</body>
+</html>

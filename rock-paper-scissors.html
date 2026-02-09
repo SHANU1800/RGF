@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rock Paper Scissors - RITGAMES</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 800px;
+            padding: 30px;
+        }
+
+        .game-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .game-header h1 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .room-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .room-code {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .connection-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Lobby Screen */
+        .lobby-screen {
+            text-align: center;
+        }
+
+        .lobby-screen h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .players-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .player-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        /* Game Screen */
+        .game-screen {
+            display: none;
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .player-score {
+            text-align: center;
+        }
+
+        .player-score .name {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .player-score .score {
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .round-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .round-info h3 {
+            font-size: 1.5em;
+            color: #333;
+        }
+
+        .choices-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .choice-btn {
+            width: 120px;
+            height: 120px;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            background: white;
+            font-size: 3em;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .choice-btn:hover:not(:disabled) {
+            transform: scale(1.1);
+            background: #667eea;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .choice-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .choice-btn.selected {
+            background: #667eea;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+        }
+
+        .waiting-message {
+            text-align: center;
+            font-size: 1.2em;
+            color: #666;
+            margin: 20px 0;
+        }
+
+        /* Result Screen */
+        .result-screen {
+            display: none;
+            text-align: center;
+        }
+
+        .result-screen h2 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .choices-display {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 30px 0;
+        }
+
+        .player-choice {
+            text-align: center;
+        }
+
+        .player-choice .name {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .player-choice .choice-icon {
+            font-size: 5em;
+            margin: 20px 0;
+        }
+
+        .vs-text {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .result-message {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .result-win {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .result-lose {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .result-tie {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .game-over {
+            background: #667eea;
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .game-over h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .show {
+            display: block !important;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>🪨 Rock Paper Scissors ✂️</h1>
+        </div>
+
+        <div class="room-info">
+            <div class="room-code">Room: <span id="roomCodeDisplay">---</span></div>
+            <div class="connection-status status-disconnected" id="connectionStatus">Connecting...</div>
+        </div>
+
+        <!-- Lobby Screen -->
+        <div class="lobby-screen" id="lobbyScreen">
+            <h2>Waiting for Players...</h2>
+            <div class="players-list" id="playersList">
+                <div class="player-item">Waiting for players...</div>
+            </div>
+            <p id="playerCount">0 / 2 Players</p>
+            <button class="btn btn-primary" id="startGameBtn" onclick="startGame()" disabled>Start Game</button>
+            <button class="btn btn-secondary" onclick="leaveRoom()">Leave Room</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div class="game-screen" id="gameScreen">
+            <div class="scoreboard" id="scoreboard">
+                <!-- Populated dynamically -->
+            </div>
+
+            <div class="round-info">
+                <h3 id="roundInfo">Round 1</h3>
+            </div>
+
+            <div id="choiceSection">
+                <p style="text-align: center; margin-bottom: 20px; font-size: 1.2em; color: #333;">
+                    Make your choice!
+                </p>
+                <div class="choices-container">
+                    <button class="choice-btn" onclick="makeChoice('rock')" id="btn-rock">
+                        🪨
+                    </button>
+                    <button class="choice-btn" onclick="makeChoice('paper')" id="btn-paper">
+                        📄
+                    </button>
+                    <button class="choice-btn" onclick="makeChoice('scissors')" id="btn-scissors">
+                        ✂️
+                    </button>
+                </div>
+            </div>
+
+            <div class="waiting-message hidden" id="waitingMessage">
+                Waiting for opponent...
+            </div>
+        </div>
+
+        <!-- Result Screen -->
+        <div class="result-screen" id="resultScreen">
+            <div class="choices-display" id="choicesDisplay">
+                <!-- Populated dynamically -->
+            </div>
+
+            <div id="resultMessage" class="result-message">
+                <!-- Populated dynamically -->
+            </div>
+
+            <div id="gameOverSection" class="hidden">
+                <div class="game-over">
+                    <h2 id="gameOverMessage">Game Over!</h2>
+                    <div id="finalScores"></div>
+                </div>
+                <button class="btn btn-primary" onclick="playAgain()">Play Again</button>
+                <button class="btn btn-secondary" onclick="leaveRoom()">Leave Room</button>
+            </div>
+
+            <div id="nextRoundSection" class="hidden">
+                <button class="btn btn-primary" onclick="nextRound()">Next Round</button>
+            </div>
+        </div>
+
+        <div class="error-message hidden" id="errorMessage"></div>
+    </div>
+
+    <script>
+        // Game state
+        let ws = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        let heartbeatTimer = null;
+        let shouldReconnect = true;
+        let gameState = {
+            roomCode: null,
+            playerId: null,
+            nickname: null,
+            players: [],
+            currentRound: 1,
+            scores: {},
+            myChoice: null,
+            opponentReady: false,
+            gameStatus: 'WAITING'
+        };
+
+        // Initialize
+        function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            gameState.roomCode = urlParams.get('code');
+            
+            if (!gameState.roomCode) {
+                showError('No room code provided');
+                return;
+            }
+
+            document.getElementById('roomCodeDisplay').textContent = gameState.roomCode;
+
+            // Get player info from localStorage
+            const roomData = JSON.parse(localStorage.getItem(`room_${gameState.roomCode}`) || '{}');
+            gameState.playerId = roomData.member_id;
+            gameState.nickname = roomData.nickname || 'Player';
+
+            if (!gameState.playerId) {
+                showError('Player data not found. Please join the room from the dashboard.');
+                return;
+            }
+
+            connectWebSocket();
+        }
+
+        function getWsBaseUrl() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsHost = window.location.port === '3000' ? 'localhost:8000' : window.location.host;
+            return `${wsProtocol}//${wsHost}`;
+        }
+
+        function startHeartbeat() {
+            stopHeartbeat();
+            heartbeatTimer = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+                }
+            }, 5000);
+        }
+
+        function stopHeartbeat() {
+            if (heartbeatTimer) {
+                clearInterval(heartbeatTimer);
+                heartbeatTimer = null;
+            }
+        }
+
+        function scheduleReconnect() {
+            if (!shouldReconnect) return;
+            if (reconnectAttempts >= maxReconnectAttempts) return;
+            const delay = 1000 * Math.pow(2, reconnectAttempts);
+            reconnectAttempts += 1;
+            setTimeout(connectWebSocket, delay);
+        }
+
+        function connectWebSocket() {
+            if (!shouldReconnect) return;
+            const wsUrl = `${getWsBaseUrl()}/ws/rps/${gameState.roomCode}/`;
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                reconnectAttempts = 0;
+                updateConnectionStatus(true);
+                startHeartbeat();
+                
+                // Join the game
+                ws.send(JSON.stringify({
+                    type: 'join',
+                    nickname: gameState.nickname,
+                    player_id: gameState.playerId
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                showError('Connection error');
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                stopHeartbeat();
+                updateConnectionStatus(false);
+                scheduleReconnect();
+            };
+        }
+
+        function handleMessage(data) {
+            console.log('Received:', data);
+
+            switch (data.type) {
+                case 'connected':
+                    console.log('Connected to game');
+                    break;
+
+                case 'lobby_update':
+                    updateLobby(data.lobby_state, data.game_state);
+                    break;
+
+                case 'game_start':
+                    startGameScreen(data.game_state);
+                    break;
+
+                case 'choice_registered':
+                    onChoiceRegistered(data.choice);
+                    break;
+
+                case 'opponent_ready':
+                    gameState.opponentReady = true;
+                    document.getElementById('waitingMessage').classList.remove('hidden');
+                    break;
+
+                case 'round_result':
+                    showRoundResult(data);
+                    break;
+
+                case 'next_round':
+                    startNewRound(data.round);
+                    break;
+
+                case 'game_reset':
+                    resetGame(data.game_state);
+                    break;
+
+                case 'player_left':
+                    showError('Opponent left the game');
+                    setTimeout(() => window.location.href = 'dashboard.html', 3000);
+                    break;
+
+                case 'error':
+                    showError(data.message);
+                    break;
+            }
+        }
+
+        function updateLobby(lobbyState, gameStateData) {
+            gameState.players = lobbyState.players;
+            
+            const playersList = document.getElementById('playersList');
+            playersList.innerHTML = lobbyState.players.map(p => 
+                `<div class="player-item">${p.nickname}</div>`
+            ).join('');
+
+            document.getElementById('playerCount').textContent = 
+                `${lobbyState.player_count} / ${lobbyState.max_players} Players`;
+
+            // Enable start button if we have 2 players
+            const startBtn = document.getElementById('startGameBtn');
+            startBtn.disabled = lobbyState.player_count !== 2;
+        }
+
+        function startGame() {
+            ws.send(JSON.stringify({ type: 'start_game' }));
+        }
+
+        function startGameScreen(gameStateData) {
+            document.getElementById('lobbyScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            
+            gameState.currentRound = gameStateData.round;
+            gameState.scores = gameStateData.scores;
+            
+            updateScoreboard();
+            resetChoiceButtons();
+        }
+
+        function updateScoreboard() {
+            const scoreboard = document.getElementById('scoreboard');
+            scoreboard.innerHTML = gameState.players.map(p => `
+                <div class="player-score">
+                    <div class="name">${p.nickname}</div>
+                    <div class="score">${gameState.scores[p.id] || 0}</div>
+                </div>
+            `).join('');
+        }
+
+        function makeChoice(choice) {
+            if (gameState.myChoice) return; // Already chose
+
+            gameState.myChoice = choice;
+            
+            // Send choice to server
+            ws.send(JSON.stringify({
+                type: 'make_choice',
+                choice: choice
+            }));
+        }
+
+        function onChoiceRegistered(choice) {
+            // Highlight selected choice
+            document.getElementById(`btn-${choice}`).classList.add('selected');
+            
+            // Disable all choice buttons
+            disableChoiceButtons();
+            
+            // Show waiting message
+            document.getElementById('waitingMessage').classList.remove('hidden');
+        }
+
+        function showRoundResult(data) {
+            // Hide game screen, show result screen
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('resultScreen').classList.remove('hidden');
+            document.getElementById('resultScreen').style.display = 'block';
+
+            // Display choices
+            const choicesDisplay = document.getElementById('choicesDisplay');
+            const playerIds = Object.keys(data.choices);
+            const p1 = data.choices[playerIds[0]];
+            const p2 = data.choices[playerIds[1]];
+
+            const choiceEmojis = {
+                'rock': '🪨',
+                'paper': '📄',
+                'scissors': '✂️'
+            };
+
+            choicesDisplay.innerHTML = `
+                <div class="player-choice">
+                    <div class="name">${p1.nickname}</div>
+                    <div class="choice-icon">${choiceEmojis[p1.choice]}</div>
+                    <div>${p1.choice.toUpperCase()}</div>
+                </div>
+                <div class="vs-text">VS</div>
+                <div class="player-choice">
+                    <div class="name">${p2.nickname}</div>
+                    <div class="choice-icon">${choiceEmojis[p2.choice]}</div>
+                    <div>${p2.choice.toUpperCase()}</div>
+                </div>
+            `;
+
+            // Show result message
+            const resultMessage = document.getElementById('resultMessage');
+            if (data.round_result === 'tie') {
+                resultMessage.textContent = "It's a Tie! 🤝";
+                resultMessage.className = 'result-message result-tie';
+            } else if (data.round_winner === gameState.playerId) {
+                resultMessage.textContent = "You Won This Round! 🎉";
+                resultMessage.className = 'result-message result-win';
+            } else {
+                resultMessage.textContent = "You Lost This Round 😞";
+                resultMessage.className = 'result-message result-lose';
+            }
+
+            // Update scores
+            gameState.scores = data.scores;
+
+            // Check if game is over
+            if (data.game_over) {
+                showGameOver(data.game_winner);
+            } else {
+                // Show next round button
+                document.getElementById('nextRoundSection').classList.remove('hidden');
+                document.getElementById('gameOverSection').classList.add('hidden');
+            }
+        }
+
+        function showGameOver(winnerId) {
+            const gameOverMessage = document.getElementById('gameOverMessage');
+            const finalScores = document.getElementById('finalScores');
+
+            if (winnerId === gameState.playerId) {
+                gameOverMessage.textContent = '🎉 You Won the Game! 🎉';
+            } else {
+                gameOverMessage.textContent = '😞 You Lost the Game';
+            }
+
+            finalScores.innerHTML = gameState.players.map(p => `
+                <p style="font-size: 1.2em; margin: 10px 0;">
+                    ${p.nickname}: ${gameState.scores[p.id]} wins
+                </p>
+            `).join('');
+
+            document.getElementById('gameOverSection').classList.remove('hidden');
+            document.getElementById('nextRoundSection').classList.add('hidden');
+        }
+
+        function nextRound() {
+            ws.send(JSON.stringify({ type: 'next_round' }));
+        }
+
+        function startNewRound(roundNumber) {
+            gameState.currentRound = roundNumber;
+            gameState.myChoice = null;
+            gameState.opponentReady = false;
+
+            // Hide result screen, show game screen
+            document.getElementById('resultScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+
+            // Update round info
+            document.getElementById('roundInfo').textContent = `Round ${roundNumber}`;
+
+            // Reset and enable choice buttons
+            resetChoiceButtons();
+            updateScoreboard();
+        }
+
+        function playAgain() {
+            ws.send(JSON.stringify({ type: 'play_again' }));
+        }
+
+        function resetGame(gameStateData) {
+            gameState.currentRound = 1;
+            gameState.scores = gameStateData.scores;
+            gameState.myChoice = null;
+            gameState.opponentReady = false;
+
+            // Hide result screen, show game screen
+            document.getElementById('resultScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+
+            document.getElementById('roundInfo').textContent = 'Round 1';
+            resetChoiceButtons();
+            updateScoreboard();
+        }
+
+        function resetChoiceButtons() {
+            const buttons = ['btn-rock', 'btn-paper', 'btn-scissors'];
+            buttons.forEach(id => {
+                const btn = document.getElementById(id);
+                btn.disabled = false;
+                btn.classList.remove('selected');
+            });
+            document.getElementById('waitingMessage').classList.add('hidden');
+        }
+
+        function disableChoiceButtons() {
+            const buttons = ['btn-rock', 'btn-paper', 'btn-scissors'];
+            buttons.forEach(id => {
+                document.getElementById(id).disabled = true;
+            });
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (connected) {
+                statusEl.textContent = 'Connected';
+                statusEl.className = 'connection-status status-connected';
+            } else {
+                statusEl.textContent = 'Disconnected';
+                statusEl.className = 'connection-status status-disconnected';
+            }
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+        }
+
+        function leaveRoom() {
+            shouldReconnect = false;
+            stopHeartbeat();
+            const returnPartyCode = localStorage.getItem('returnPartyCode');
+            const roomCode = gameState.roomCode;
+            if (roomCode) {
+                localStorage.removeItem(`room_${roomCode}`);
+            }
+            if (ws) {
+                ws.close();
+            }
+            if (returnPartyCode) {
+                window.location.href = `dashboard.html?party=${returnPartyCode}`;
+            } else {
+                window.location.href = 'dashboard.html';
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

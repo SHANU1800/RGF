@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Arrow">
+  <defs>
+    <linearGradient id="shaftGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6f4a2b"/>
+      <stop offset="0.5" stop-color="#8f6438"/>
+      <stop offset="1" stop-color="#5b3b21"/>
+    </linearGradient>
+    <linearGradient id="tipGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f3f6fb"/>
+      <stop offset="0.45" stop-color="#c5cfdb"/>
+      <stop offset="1" stop-color="#7f8ea2"/>
+    </linearGradient>
+    <linearGradient id="featherGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34b8a4"/>
+      <stop offset="1" stop-color="#157c71"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(8 9)">
+    <path d="M18 57L93 57C96 57 98 59 98 62C98 65 96 67 93 67L18 67C15 67 13 65 13 62C13 59 15 57 18 57Z" fill="url(#shaftGrad)"/>
+    <path d="M18 60L93 60" stroke="#e2b57f" stroke-width="1.8" stroke-linecap="round" opacity="0.7"/>
+    <path d="M18 63L93 63" stroke="#402713" stroke-width="1.5" stroke-linecap="round" opacity="0.45"/>
+
+    <path d="M92 49L112 62L92 75L94.5 66.5L86 66.5L86 57.5L94.5 57.5Z" fill="url(#tipGrad)"/>
+    <path d="M92 49L112 62L92 75" fill="none" stroke="#4a5568" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M98.5 56.5L106 62L98.5 67.5" fill="none" stroke="#ffffff" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" opacity="0.75"/>
+
+    <path d="M10 62L1 47L15 54L22 62L15 70L1 77Z" fill="url(#featherGrad)"/>
+    <path d="M10 62L1 47L15 54L22 62L15 70L1 77Z" fill="none" stroke="#0d3d38" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M3.5 50.5L14 61.8L3.5 73.5" fill="none" stroke="#9ef0e5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.65"/>
+    <path d="M9 62L2 58" stroke="#0d3d38" stroke-width="1.1" stroke-linecap="round" opacity="0.7"/>
+    <path d="M9 62L2 66" stroke="#0d3d38" stroke-width="1.1" stroke-linecap="round" opacity="0.7"/>
+
+    <circle cx="20" cy="62" r="2.2" fill="#2f1c10" opacity="0.75"/>
+  </g>
+</svg>

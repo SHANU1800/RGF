@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Status - RITGAMES</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+        }
+        .endpoint {
+            background: #2a2a2a;
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .endpoint-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .endpoint-name {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .status {
+            padding: 5px 15px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .status-success {
+            background: #00ff00;
+            color: #000;
+        }
+        .status-error {
+            background: #ff0000;
+            color: #fff;
+        }
+        .status-pending {
+            background: #ffaa00;
+            color: #000;
+        }
+        .endpoint-details {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 5px;
+        }
+        .response {
+            background: #000;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.85em;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        button {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #00dd00;
+        }
+        .test-section {
+            background: #2a2a2a;
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 RITGAMES API STATUS</h1>
+        
+        <div id="endpoints"></div>
+        
+        <div class="test-section">
+            <h2>Quick Actions</h2>
+            <button onclick="testAll()">Test All Endpoints</button>
+            <button onclick="createGuestUser()">Create Guest User</button>
+            <button onclick="clearStorage()">Clear Storage</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        const endpoints = [
+            { name: 'Health Check', url: '/api/health/', method: 'GET', auth: false },
+            { name: 'Current User', url: '/api/auth/me/', method: 'GET', auth: true },
+            { name: 'Guest Login', url: '/api/auth/guest/', method: 'POST', auth: false },
+            { name: 'Games List', url: '/api/games/', method: 'GET', auth: false },
+            { name: 'Create Room', url: '/api/rooms/', method: 'POST', auth: true, body: { game_slug: 'party', max_players: 8 } },
+        ];
+
+        async function testEndpoint(endpoint) {
+            const resultDiv = document.getElementById(`result-${endpoints.indexOf(endpoint)}`);
+            const statusDiv = document.getElementById(`status-${endpoints.indexOf(endpoint)}`);
+            
+            statusDiv.className = 'status status-pending';
+            statusDiv.textContent = 'Testing...';
+            
+            try {
+                const options = {
+                    method: endpoint.method,
+                    credentials: 'include',
+                    headers: {}
+                };
+                
+                if (endpoint.body) {
+                    options.headers['Content-Type'] = 'application/json';
+                    options.body = JSON.stringify(endpoint.body);
+                }
+                
+                const response = await fetch(endpoint.url, options);
+                const data = await response.json().catch(() => ({ text: await response.text() }));
+                
+                if (response.ok || response.status === 401) {
+                    statusDiv.className = 'status status-success';
+                    statusDiv.textContent = `${response.status} ${response.statusText}`;
+                } else {
+                    statusDiv.className = 'status status-error';
+                    statusDiv.textContent = `${response.status} ${response.statusText}`;
+                }
+                
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                
+            } catch (error) {
+                statusDiv.className = 'status status-error';
+                statusDiv.textContent = 'ERROR';
+                resultDiv.textContent = error.message;
+            }
+        }
+
+        async function testAll() {
+            for (const endpoint of endpoints) {
+                await testEndpoint(endpoint);
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+
+        async function createGuestUser() {
+            const response = await fetch(`${API_BASE}/auth/guest/`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+            const data = await response.json();
+            alert(`Guest user created: ${data.display_name || data.gamer_id}`);
+            testAll();
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            alert('Storage cleared!');
+            location.reload();
+        }
+
+        function renderEndpoints() {
+            const container = document.getElementById('endpoints');
+            container.innerHTML = endpoints.map((endpoint, index) => `
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <div class="endpoint-name">${endpoint.method} ${endpoint.url}</div>
+                        <div class="status status-pending" id="status-${index}">Not Tested</div>
+                    </div>
+                    <div class="endpoint-details">
+                        ${endpoint.auth ? '🔒 Requires Authentication' : '🔓 Public'}
+                        ${endpoint.body ? ' | 📦 Has Body' : ''}
+                    </div>
+                    <button onclick="testEndpoint(endpoints[${index}])">Test</button>
+                    <div class="response" id="result-${index}">No response yet</div>
+                </div>
+            `).join('');
+        }
+
+        window.addEventListener('load', () => {
+            renderEndpoints();
+            testAll();
+        });
+    </script>
+</body>
+</html>

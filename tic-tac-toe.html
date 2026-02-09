@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe - RITGAMES</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+        }
+
+        .game-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .game-header h1 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .room-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .room-code {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .connection-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .lobby-screen {
+            text-align: center;
+        }
+
+        .lobby-screen h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .players-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .player-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .game-screen {
+            display: none;
+        }
+
+        .players-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .player-info {
+            text-align: center;
+            flex: 1;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 0 5px;
+        }
+
+        .player-info.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .player-info .symbol {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .player-info .name {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 400px;
+            margin: 0 auto 30px;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: #f8f9fa;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            font-size: 3em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .cell:hover:not(.filled) {
+            background: #e9ecef;
+            transform: scale(1.05);
+        }
+
+        .cell.filled {
+            cursor: not-allowed;
+        }
+
+        .cell.winner {
+            background: #d4edda;
+            animation: pulse 0.5s;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .game-status {
+            text-align: center;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .status-your-turn {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-opponent-turn {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-winner {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-loser {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-draw {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .game-over-section {
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>⭕ Tic Tac Toe ❌</h1>
+        </div>
+
+        <div class="room-info">
+            <div class="room-code">Room: <span id="roomCodeDisplay">---</span></div>
+            <div class="connection-status status-disconnected" id="connectionStatus">Connecting...</div>
+        </div>
+
+        <!-- Lobby Screen -->
+        <div class="lobby-screen" id="lobbyScreen">
+            <h2>Waiting for Players...</h2>
+            <div class="players-list" id="playersList">
+                <div class="player-item">Waiting for players...</div>
+            </div>
+            <p id="playerCount">0 / 2 Players</p>
+            <button class="btn btn-primary" id="startGameBtn" onclick="startGame()" disabled>Start Game</button>
+            <button class="btn btn-secondary" onclick="leaveRoom()">Leave Room</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div class="game-screen" id="gameScreen">
+            <div class="players-info" id="playersInfo">
+                <!-- Populated dynamically -->
+            </div>
+
+            <div class="game-status" id="gameStatus">
+                <!-- Populated dynamically -->
+            </div>
+
+            <div class="board" id="board">
+                <div class="cell" data-index="0" onclick="makeMove(0)"></div>
+                <div class="cell" data-index="1" onclick="makeMove(1)"></div>
+                <div class="cell" data-index="2" onclick="makeMove(2)"></div>
+                <div class="cell" data-index="3" onclick="makeMove(3)"></div>
+                <div class="cell" data-index="4" onclick="makeMove(4)"></div>
+                <div class="cell" data-index="5" onclick="makeMove(5)"></div>
+                <div class="cell" data-index="6" onclick="makeMove(6)"></div>
+                <div class="cell" data-index="7" onclick="makeMove(7)"></div>
+                <div class="cell" data-index="8" onclick="makeMove(8)"></div>
+            </div>
+
+            <div class="game-over-section hidden" id="gameOverSection">
+                <button class="btn btn-primary" onclick="playAgain()">Play Again</button>
+                <button class="btn btn-secondary" onclick="leaveRoom()">Leave Room</button>
+            </div>
+        </div>
+
+        <div class="error-message hidden" id="errorMessage"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        let heartbeatTimer = null;
+        let shouldReconnect = true;
+        let gameState = {
+            roomCode: null,
+            playerId: null,
+            nickname: null,
+            mySymbol: null,
+            xPlayer: null,
+            oPlayer: null,
+            players: {},
+            currentTurn: null,
+            board: Array(9).fill(''),
+            status: 'WAITING'
+        };
+
+        function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            gameState.roomCode = urlParams.get('code');
+            
+            if (!gameState.roomCode) {
+                showError('No room code provided');
+                return;
+            }
+
+            document.getElementById('roomCodeDisplay').textContent = gameState.roomCode;
+
+            const roomData = JSON.parse(localStorage.getItem(`room_${gameState.roomCode}`) || '{}');
+            gameState.playerId = roomData.member_id;
+            gameState.nickname = roomData.nickname || 'Player';
+
+            if (!gameState.playerId) {
+                showError('Player data not found. Please join the room from the dashboard.');
+                return;
+            }
+
+            connectWebSocket();
+        }
+
+        function getWsBaseUrl() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsHost = window.location.port === '3000' ? 'localhost:8000' : window.location.host;
+            return `${wsProtocol}//${wsHost}`;
+        }
+
+        function startHeartbeat() {
+            stopHeartbeat();
+            heartbeatTimer = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+                }
+            }, 5000);
+        }
+
+        function stopHeartbeat() {
+            if (heartbeatTimer) {
+                clearInterval(heartbeatTimer);
+                heartbeatTimer = null;
+            }
+        }
+
+        function scheduleReconnect() {
+            if (!shouldReconnect) return;
+            if (reconnectAttempts >= maxReconnectAttempts) return;
+            const delay = 1000 * Math.pow(2, reconnectAttempts);
+            reconnectAttempts += 1;
+            setTimeout(connectWebSocket, delay);
+        }
+
+        function connectWebSocket() {
+            if (!shouldReconnect) return;
+            const wsUrl = `${getWsBaseUrl()}/ws/ttt/${gameState.roomCode}/`;
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                reconnectAttempts = 0;
+                updateConnectionStatus(true);
+                startHeartbeat();
+                
+                ws.send(JSON.stringify({
+                    type: 'join',
+                    nickname: gameState.nickname,
+                    player_id: gameState.playerId
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                showError('Connection error');
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                stopHeartbeat();
+                updateConnectionStatus(false);
+                scheduleReconnect();
+            };
+        }
+
+        function handleMessage(data) {
+            console.log('Received:', data);
+
+            switch (data.type) {
+                case 'connected':
+                    console.log('Connected to game');
+                    break;
+                case 'lobby_update':
+                    updateLobby(data.lobby_state);
+                    break;
+                case 'game_start':
+                    startGameScreen(data.game_state, data.players);
+                    break;
+                case 'move_made':
+                    handleMoveMade(data);
+                    break;
+                case 'game_reset':
+                    resetGame(data.game_state);
+                    break;
+                case 'player_left':
+                    showError('Opponent left the game');
+                    setTimeout(() => window.location.href = 'dashboard.html', 3000);
+                    break;
+                case 'error':
+                    showError(data.message);
+                    break;
+            }
+        }
+
+        function updateLobby(lobbyState) {
+            const playersList = document.getElementById('playersList');
+            playersList.innerHTML = lobbyState.players.map(p => 
+                `<div class="player-item">${p.nickname}</div>`
+            ).join('');
+
+            document.getElementById('playerCount').textContent = 
+                `${lobbyState.player_count} / ${lobbyState.max_players} Players`;
+
+            const startBtn = document.getElementById('startGameBtn');
+            startBtn.disabled = lobbyState.player_count !== 2;
+        }
+
+        function startGame() {
+            ws.send(JSON.stringify({ type: 'start_game' }));
+        }
+
+        function startGameScreen(gameStateData, players) {
+            document.getElementById('lobbyScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            
+            gameState.xPlayer = gameStateData.x_player;
+            gameState.oPlayer = gameStateData.o_player;
+            gameState.currentTurn = gameStateData.current_turn;
+            gameState.board = gameStateData.board;
+            gameState.status = gameStateData.status;
+            
+            gameState.mySymbol = (gameState.playerId === gameState.xPlayer) ? 'X' : 'O';
+            
+            gameState.players = {
+                x: players.x,
+                o: players.o
+            };
+
+            updatePlayersInfo();
+            updateBoard();
+            updateGameStatus();
+        }
+
+        function updatePlayersInfo() {
+            const playersInfo = document.getElementById('playersInfo');
+            const xActive = gameState.currentTurn === gameState.xPlayer;
+            const oActive = gameState.currentTurn === gameState.oPlayer;
+
+            playersInfo.innerHTML = `
+                <div class="player-info ${xActive ? 'active' : ''}">
+                    <div class="symbol">❌</div>
+                    <div class="name">${gameState.players.x.nickname}</div>
+                </div>
+                <div class="player-info ${oActive ? 'active' : ''}">
+                    <div class="symbol">⭕</div>
+                    <div class="name">${gameState.players.o.nickname}</div>
+                </div>
+            `;
+        }
+
+        function updateBoard() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach((cell, index) => {
+                const value = gameState.board[index];
+                if (value === 'X') {
+                    cell.textContent = '❌';
+                    cell.classList.add('filled');
+                } else if (value === 'O') {
+                    cell.textContent = '⭕';
+                    cell.classList.add('filled');
+                } else {
+                    cell.textContent = '';
+                    cell.classList.remove('filled');
+                }
+                cell.classList.remove('winner');
+            });
+        }
+
+        function updateGameStatus() {
+            const statusEl = document.getElementById('gameStatus');
+            
+            if (gameState.status === 'FINISHED') {
+                if (gameState.winner === 'DRAW') {
+                    statusEl.textContent = "It's a Draw! 🤝";
+                    statusEl.className = 'game-status status-draw';
+                } else if (gameState.winner === gameState.playerId) {
+                    statusEl.textContent = "You Won! 🎉";
+                    statusEl.className = 'game-status status-winner';
+                } else {
+                    statusEl.textContent = "You Lost 😞";
+                    statusEl.className = 'game-status status-loser';
+                }
+                document.getElementById('gameOverSection').classList.remove('hidden');
+            } else if (gameState.currentTurn === gameState.playerId) {
+                statusEl.textContent = "Your Turn!";
+                statusEl.className = 'game-status status-your-turn';
+            } else {
+                statusEl.textContent = "Opponent's Turn...";
+                statusEl.className = 'game-status status-opponent-turn';
+            }
+
+            updatePlayersInfo();
+        }
+
+        function makeMove(position) {
+            if (gameState.status !== 'PLAYING') return;
+            if (gameState.currentTurn !== gameState.playerId) return;
+            if (gameState.board[position] !== '') return;
+
+            ws.send(JSON.stringify({
+                type: 'make_move',
+                position: position
+            }));
+        }
+
+        function handleMoveMade(data) {
+            gameState.board = data.game_state.board;
+            gameState.currentTurn = data.game_state.current_turn;
+            gameState.status = data.game_state.status;
+            
+            updateBoard();
+
+            if (data.winner) {
+                gameState.winner = data.game_state.winner;
+                // Highlight winning cells
+                data.winner.forEach(index => {
+                    document.querySelector(`.cell[data-index="${index}"]`).classList.add('winner');
+                });
+            } else if (data.is_draw) {
+                gameState.winner = 'DRAW';
+            }
+
+            updateGameStatus();
+        }
+
+        function playAgain() {
+            ws.send(JSON.stringify({ type: 'play_again' }));
+        }
+
+        function resetGame(gameStateData) {
+            gameState.board = gameStateData.board;
+            gameState.currentTurn = gameStateData.current_turn;
+            gameState.status = gameStateData.status;
+            gameState.winner = null;
+
+            updateBoard();
+            updateGameStatus();
+            document.getElementById('gameOverSection').classList.add('hidden');
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (connected) {
+                statusEl.textContent = 'Connected';
+                statusEl.className = 'connection-status status-connected';
+            } else {
+                statusEl.textContent = 'Disconnected';
+                statusEl.className = 'connection-status status-disconnected';
+            }
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+        }
+
+        function leaveRoom() {
+            shouldReconnect = false;
+            stopHeartbeat();
+            const returnPartyCode = localStorage.getItem('returnPartyCode');
+            const roomCode = gameState.roomCode;
+            if (roomCode) {
+                localStorage.removeItem(`room_${roomCode}`);
+            }
+            if (ws) ws.close();
+            if (returnPartyCode) {
+                window.location.href = `dashboard.html?party=${returnPartyCode}`;
+            } else {
+                window.location.href = 'dashboard.html';
+            }
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

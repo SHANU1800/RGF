@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stickman Archers - Game</title>
+    <link rel="stylesheet" href="css/styles.css?v=20260208b">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="room-info">
+                <span class="room-code">Room: <strong id="roomCodeDisplay"></strong></span>
+                <span class="player-name">Player: <strong id="playerNameDisplay"></strong></span>
+                <span class="team-badge" id="teamBadge"></span>
+            </div>
+            <div class="connection-status">
+                <span id="connectionStatus" class="status-disconnected">Connecting...</span>
+            </div>
+            <button class="btn btn-secondary btn-compact" id="slowMotionBtn" style="display:none;">Enable Slow Motion</button>
+            <button class="btn btn-secondary btn-compact" id="cameraMotionBtn" title="Accessibility: reduce camera motion">Camera Motion: Full</button>
+            <button class="btn btn-secondary btn-compact" onclick="leaveRoom()">Leave Game</button>
+        </div>
+        
+        <div class="game-content">
+            <aside class="sidebar sidebar-left">
+                <div class="team-panel red-team">
+                    <h3>RED TEAM</h3>
+                    <div id="redTeamPlayers" class="player-list"></div>
+                </div>
+            </aside>
+            
+            <main class="game-area">
+                <div class="lobby-overlay" id="lobbyOverlay">
+                    <div class="lobby-content">
+                        <h2>Waiting for Players...</h2>
+                        <div class="lobby-stats">
+                            <p><span id="playerCount">0</span> / <span id="maxPlayers">8</span> Players</p>
+                        </div>
+                        <button class="btn btn-primary" id="startGameBtn" style="display:none;">Start Game</button>
+                        <button class="btn btn-secondary" onclick="leaveRoom()">Leave Room</button>
+                    </div>
+                </div>
+                <div class="round-overlay hidden" id="roundOverlay">
+                    <div class="round-overlay-content">
+                        <div id="roundOverlayTitle">Round Over</div>
+                        <div id="roundOverlaySubtitle">Next round in 3s</div>
+                    </div>
+                </div>
+                <div class="match-overlay hidden" id="matchOverlay">
+                    <div class="match-overlay-content">
+                        <div id="matchOverlayTitle">Match Over</div>
+                        <div id="matchOverlaySubtitle">Restarting...</div>
+                    </div>
+                </div>
+
+                <div class="loadout-panel" id="loadoutPanel">
+                    <div class="loadout-title">Choose Your Role</div>
+                    <div class="loadout-buttons">
+                        <button class="loadout-btn" data-role="archer" data-weapon="arrows">
+                            <span class="weapon-icon"></span>
+                            <span>Archer</span>
+                        </button>
+                        <button class="loadout-btn" data-role="longswordsman" data-weapon="longsword">
+                            <span class="weapon-icon"></span>
+                            <span>Longswordsman</span>
+                        </button>
+                        <button class="loadout-btn" data-role="shield+sword" data-weapon="shield">
+                            <span class="weapon-icon"></span>
+                            <span>Shield + Sword</span>
+                        </button>
+                    </div>
+                    <div class="loadout-summary">Equipped: <span id="loadoutSummary">Loading...</span></div>
+                    <div class="svg-showcase" id="svgShowcase">
+                        <div class="svg-showcase-title">Weapon SVG Pack</div>
+                        <div class="svg-showcase-grid">
+                            <span class="asset-chip"><span class="weapon-icon bow"></span><span>Bow</span></span>
+                            <span class="asset-chip"><span class="weapon-icon arrow"></span><span>Arrow</span></span>
+                            <span class="asset-chip"><span class="weapon-icon longsword"></span><span>Axe</span></span>
+                            <span class="asset-chip"><span class="weapon-icon shield"></span><span>Shield</span></span>
+                            <span class="asset-chip"><span class="weapon-icon dagger"></span><span>Dagger</span></span>
+                            <span class="asset-chip"><span class="weapon-icon axe"></span><span>Axe</span></span>
+                            <span class="asset-chip"><span class="weapon-icon spear"></span><span>Spear</span></span>
+                            <span class="asset-chip"><span class="weapon-icon warhammer"></span><span>Warhammer</span></span>
+                            <span class="asset-chip"><span class="weapon-icon flail"></span><span>Flail</span></span>
+                            <span class="asset-chip"><span class="weapon-icon crossbow"></span><span>Crossbow</span></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <canvas id="gameCanvas"></canvas>
+                <div class="mobile-joystick" id="mobileJoystick" aria-hidden="true">
+                    <div class="mobile-joystick-knob" id="mobileJoystickKnob"></div>
+                </div>
+                <div class="mobile-orientation-overlay" id="mobileOrientationOverlay">
+                    <div class="mobile-orientation-card">
+                        <h3>Rotate to Landscape</h3>
+                        <p>Use landscape mode on mobile for full controls and joystick movement.</p>
+                    </div>
+                </div>
+                
+                <div class="game-hud">
+                    <div class="hud-left">
+                        <div class="health-bar">
+                            <span class="ui-icon health" title="Health"></span>
+                            <span>HP:</span>
+                            <div class="bar">
+                                <div class="bar-fill" id="healthBar" style="width: 100%"></div>
+                            </div>
+                            <span id="healthText">100</span>
+                        </div>
+                        <div class="stamina-bar">
+                            <span class="ui-icon stamina" title="Stamina"></span>
+                            <span>ST:</span>
+                            <div class="bar">
+                                <div class="bar-fill stamina-fill" id="staminaBar" style="width: 100%"></div>
+                            </div>
+                            <span id="staminaText">100</span>
+                        </div>
+                        <div class="ui-badges">
+                            <span class="asset-chip compact"><span class="ui-icon armor"></span><span>Armor</span></span>
+                            <span class="asset-chip compact"><span class="ui-icon stamina"></span><span>Stamina</span></span>
+                            <span class="asset-chip compact"><span class="ui-icon target"></span><span>Target</span></span>
+                            <span class="asset-chip compact"><span class="ui-icon skull"></span><span>Kills</span></span>
+                        </div>
+                    </div>
+                    <div class="hud-center">
+                        <div class="round-panel">
+                            <div id="roundState" class="round-state round-waiting">Waiting...</div>
+                            <div id="slowMotionStatus" class="round-state round-waiting">Normal Speed</div>
+                            <div id="cameraMotionStatus" class="round-state round-waiting">Camera Motion: Full</div>
+                            <div class="round-scores">
+                                <span class="score red-score" id="redScore">0</span>
+                                <span class="score-sep">-</span>
+                                <span class="score blue-score" id="blueScore">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hud-right">
+                        <div class="ammo-display">
+                            <span>Arrows:</span>
+                            <span id="ammoCount">INF</span>
+                        </div>
+                        <div class="combo-display" id="comboDisplay">
+                            <div class="combo-count" id="comboCountText">x0</div>
+                            <div class="combo-rank" id="comboRankText">-</div>
+                            <div class="combo-style" id="comboStyleText">No chain</div>
+                        </div>
+                        <div class="kill-stats">
+                            <span>Kills: <strong id="killCountText">0</strong></span>
+                            <span>Stylish: <strong id="stylishKillCountText">0</strong></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="stylish-feed" id="stylishFeed"></div>
+            </main>
+            
+            <aside class="sidebar sidebar-right">
+                <div class="team-panel blue-team">
+                    <h3>BLUE TEAM</h3>
+                    <div id="blueTeamPlayers" class="player-list"></div>
+                </div>
+            </aside>
+        </div>
+        
+        <div class="controls-help">
+                            <p><kbd>A</kbd><kbd>D</kbd> Move | <kbd>Shift</kbd> Sprint | <kbd>W</kbd> Jump | <kbd>E</kbd> Mount / Gate / Ballista | Archer: <kbd>Click + Drag</kbd> Shoot | Axe: <kbd>1</kbd> Slash <kbd>2</kbd> Upper(9) <kbd>3</kbd> Lower(3) <kbd>4</kbd> Pierce(6) | Shield: <kbd>F</kbd> or <kbd>Right Click</kbd> Block | <kbd>F3</kbd> Hitbox Debug | <kbd>F6</kbd> Camera Motion</p>
+        </div>
+    </div>
+    
+    <script src="js/config.js?v=22"></script>
+    <script src="js/websocket.js?v=19"></script>
+    <script src="js/weapon_dynamics.js?v=23"></script>
+    <script src="js/game.js?v=35"></script>
+    <script src="js/player.js?v=28"></script>
+    <script src="js/controller.js?v=19"></script>
+    <script src="js/controller_archer.js?v=27"></script>
+    <script src="js/controller_sword.js?v=22"></script>
+    <script src="js/stickman_head.js?v=19"></script>
+    <script src="js/stickman_torso.js?v=19"></script>
+    <script src="js/stickman_arms.js?v=19"></script>
+    <script src="js/stickman_legs.js?v=24"></script>
+    <script src="js/stickman.js?v=2"></script>
+    <script src="js/stickman_ai.js?v=1"></script>
+    <script src="js/sky-renderer.js?v=20"></script>
+    <script src="js/ground-renderer.js?v=20"></script>
+    <script src="js/floors-renderer.js?v=20"></script>
+    <script src="js/castle.js?v=1"></script>
+    <script src="js/castle-gate.js?v=1"></script>
+    <script src="js/castle-roof.js?v=1"></script>
+    <script src="js/left-castle.js?v=21"></script>
+    <script src="js/right-castle.js?v=21"></script>
+    <script src="js/castle-renderer.js?v=22"></script>
+    <script src="js/weapon_arrow.js?v=19"></script>
+    <script src="js/weapon_longsword.js?v=19"></script>
+    <script src="js/weapon_shield.js?v=19"></script>
+    <script src="js/weapon_minisword.js?v=19"></script>
+    <script src="js/longsword-visuals.js?v=24"></script>
+    <script src="js/shield-visuals.js?v=21"></script>
+    <script src="js/minisword-visuals.js?v=20"></script>
+    <script src="js/bow-visuals.js?v=22"></script>
+    <script src="js/arrow-visuals.js?v=23"></script>
+    <script src="js/arrows.js?v=19"></script>
+    <script src="js/stats-renderer.js?v=21"></script>
+    <script src="js/horse-renderer.js?v=30"></script>
+    <script src="js/renderer.js?v=32"></script>
+    <script src="js/input.js?v=28"></script>
+    <script src="js/main.js?v=19"></script>
+</body>
+</html>
+

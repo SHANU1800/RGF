@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Party Lobby - RITGAMES</title>
+    <style>
+        :root {
+            --bg-top: #91a8ff;
+            --bg-mid: #5d75de;
+            --bg-deep: #2a336f;
+            --panel: rgba(255, 255, 255, 0.92);
+            --text: #283056;
+            --muted: #6673a1;
+            --accent: #667eea;
+            --ease: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            background: radial-gradient(circle at 15% 20%, var(--bg-top) 0%, var(--bg-mid) 40%, var(--bg-deep) 100%);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: -24%;
+            background: conic-gradient(from 140deg, rgba(255,255,255,0.16), rgba(255,255,255,0.02), rgba(255,255,255,0.16));
+            animation: ambientDrift 20s ease-in-out infinite alternate;
+            pointer-events: none;
+            z-index: -1;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        header {
+            background: var(--panel);
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 14px 30px rgba(16, 22, 62, 0.25);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.5);
+            backdrop-filter: blur(8px);
+            animation: cardIn 500ms var(--ease);
+        }
+        .header-left h1 { color: var(--accent); font-size: 1.8em; }
+        .header-left p { color: var(--muted); }
+        .header-right { display: flex; gap: 15px; align-items: center; }
+        .btn-logout {
+            padding: 10px 20px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 180ms var(--ease), box-shadow 180ms var(--ease);
+        }
+        .btn-leave {
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 180ms var(--ease), box-shadow 180ms var(--ease);
+        }
+        .btn-logout:hover,
+        .btn-leave:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 18px rgba(26, 33, 73, 0.2);
+        }
+
+        .party-info {
+            background: var(--panel);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 14px 30px rgba(16, 22, 62, 0.22);
+            border: 1px solid rgba(255,255,255,0.5);
+            backdrop-filter: blur(8px);
+            animation: cardIn 560ms var(--ease);
+        }
+        .party-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .party-code-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .party-code-display .label { font-size: 0.85em; opacity: 0.9; }
+        .party-code-display .code {
+            font-size: 2em;
+            font-weight: bold;
+            letter-spacing: 5px;
+            font-family: monospace;
+        }
+        .copy-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 0.9em;
+            transition: background-color 180ms var(--ease), transform 180ms var(--ease);
+        }
+        .copy-btn:hover { background: rgba(255,255,255,0.3); transform: translateY(-1px); }
+
+        .party-members {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .member-card {
+            background: #f8f9fa;
+            padding: 15px 25px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: transform 200ms var(--ease), box-shadow 200ms var(--ease);
+        }
+        .member-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(20, 27, 66, 0.12);
+        }
+        .member-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+        .member-info .name { font-weight: bold; color: #333; }
+        .member-info .role { font-size: 0.85em; color: #666; }
+        .member-card.leader { border: 2px solid #f1c40f; background: #fffbeb; }
+        .member-card.me { border: 2px solid #667eea; }
+        .leader-badge {
+            background: #f1c40f;
+            color: #333;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: bold;
+        }
+        .ready-badge {
+            background: #2ecc71;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        .not-ready-badge {
+            background: #95a5a6;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .games-section {
+            background: var(--panel);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 14px 30px rgba(16, 22, 62, 0.22);
+            border: 1px solid rgba(255,255,255,0.5);
+            backdrop-filter: blur(8px);
+            animation: cardIn 620ms var(--ease);
+        }
+        .games-section h2 {
+            color: var(--text);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .game-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 230ms var(--ease), box-shadow 230ms var(--ease), border-color 230ms var(--ease), filter 230ms var(--ease);
+            border: 3px solid transparent;
+            will-change: transform;
+        }
+        .game-card:hover {
+            transform: translateY(-6px) scale(1.012);
+            box-shadow: 0 16px 30px rgba(19, 27, 66, 0.24);
+            border-color: #667eea;
+            filter: saturate(1.05);
+        }
+        .game-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .game-card.disabled:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: transparent;
+        }
+        .game-emoji {
+            font-size: 3em;
+            text-align: center;
+            padding: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .game-info {
+            padding: 15px;
+            text-align: center;
+        }
+        .game-info h3 { color: #333; margin-bottom: 5px; }
+        .game-info p { color: #666; font-size: 0.85em; }
+
+        .waiting-overlay {
+            display: flex;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 14, 34, 0.76);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 220ms var(--ease), visibility 220ms var(--ease);
+        }
+        .waiting-overlay.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+        .waiting-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 400px;
+            box-shadow: 0 20px 42px rgba(8, 12, 33, 0.45);
+            transform: translateY(10px) scale(0.98);
+            transition: transform 240ms var(--ease);
+        }
+        .waiting-overlay.active .waiting-content { transform: translateY(0) scale(1); }
+        .waiting-content h2 { color: #333; margin-bottom: 15px; }
+        .waiting-content p { color: #666; margin-bottom: 20px; }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f0f0f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+            box-shadow: 0 0 18px rgba(102, 126, 234, 0.26);
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn-cancel-wait {
+            padding: 12px 30px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .not-leader-msg {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(12px) scale(0.99); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes ambientDrift {
+            from { transform: translate(-3%, -2%) rotate(0deg); }
+            to { transform: translate(3%, 2%) rotate(9deg); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <h1>🎮 RITGAMES</h1>
+                <p id="welcomeMsg">Party Lobby</p>
+            </div>
+            <div class="header-right">
+                <button class="btn-leave" onclick="leaveParty()">Leave Party</button>
+                <button class="btn-logout" onclick="handleLogout()">Logout</button>
+            </div>
+        </header>
+
+        <div class="party-info">
+            <div class="party-header">
+                <div>
+                    <h2>🎉 Your Party</h2>
+                    <p id="memberCount">0 members</p>
+                </div>
+                <div class="party-code-display">
+                    <div class="label">Share this code with friends:</div>
+                    <div class="code" id="partyCodeDisplay">------</div>
+                    <button class="copy-btn" onclick="copyPartyCode()">📋 Copy Code</button>
+                </div>
+            </div>
+            <div class="party-members" id="partyMembers">
+                <!-- Members will be added here -->
+            </div>
+        </div>
+
+        <div class="games-section">
+            <div id="leaderNotice" class="not-leader-msg" style="display:none;">
+                ✓ You're ready! Waiting for the party leader to select and start a game...
+            </div>
+            <h2>🎯 Choose a Game</h2>
+            <div class="games-grid" id="gamesGrid">
+                <!-- Games will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="waiting-overlay" id="waitingOverlay">
+        <div class="waiting-content">
+            <div class="spinner"></div>
+            <h2 id="waitingTitle">Starting Game...</h2>
+            <p id="waitingMsg">Waiting for all party members to be ready</p>
+            <button class="btn-cancel-wait" onclick="cancelWait()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let partyCode = null;
+        let isLeader = false;
+        let currentUser = null;
+        let partyWs = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        let heartbeatTimer = null;
+        let shouldReconnect = true;
+        let games = [];
+        let partyMembers = [];
+
+        async function init() {
+            // Get party code from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            partyCode = urlParams.get('party');
+            
+            if (!partyCode) {
+                // No party code, redirect to party page
+                window.location.href = 'party.html';
+                return;
+            }
+            
+            // Get user info
+            currentUser = {
+                displayName: localStorage.getItem('displayName'),
+                gamerId: localStorage.getItem('gamerId')
+            };
+            
+            if (!currentUser.displayName) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Get party data
+            const partyData = JSON.parse(localStorage.getItem(`party_${partyCode}`) || '{}');
+            isLeader = partyData.isLeader || localStorage.getItem('isPartyLeader') === 'true';
+            
+            document.getElementById('partyCodeDisplay').textContent = partyCode;
+            document.getElementById('welcomeMsg').textContent = `Welcome, ${currentUser.displayName}!`;
+            
+            // Show/hide leader notice
+            document.getElementById('leaderNotice').style.display = isLeader ? 'none' : 'block';
+            
+            // Initialize with self as member
+            partyMembers = [{
+                nickname: currentUser.displayName,
+                is_leader: isLeader
+            }];
+            updatePartyMembers(partyMembers);
+            
+            // Load games
+            await loadGames();
+            
+            // Connect to party WebSocket
+            connectPartyWs();
+        }
+
+        async function loadGames() {
+            try {
+                const response = await fetch(`${API_BASE}/games/`, { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to load games');
+                
+                games = await response.json();
+                games = Array.isArray(games) ? games : (games.value || []);
+                
+                displayGames();
+            } catch (error) {
+                console.error('Error loading games:', error);
+            }
+        }
+
+        function displayGames() {
+            const grid = document.getElementById('gamesGrid');
+            const emojis = {
+                'stickman-archers': '🏹',
+                'tic-tac-toe': '⭕',
+                'rock-paper-scissors': '🪨',
+                'uno': '🃏',
+                'dots-and-boxes': '🔲',
+                'bluff': '🎭'
+            };
+            
+            grid.innerHTML = games.map(game => `
+                <div class="game-card ${isLeader ? '' : 'disabled'}" 
+                     onclick="${isLeader ? `selectGame('${game.slug}')` : ''}">
+                    <div class="game-emoji">${emojis[game.slug] || '🎮'}</div>
+                    <div class="game-info">
+                        <h3>${game.name}</h3>
+                        <p>${game.min_players}-${game.max_players} players</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getWsBaseUrl() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsHost = window.location.port === '3000' ? 'localhost:8000' : window.location.host;
+            return `${wsProtocol}//${wsHost}`;
+        }
+
+        function startHeartbeat() {
+            stopHeartbeat();
+            heartbeatTimer = setInterval(() => {
+                if (partyWs && partyWs.readyState === WebSocket.OPEN) {
+                    partyWs.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+                }
+            }, 5000);
+        }
+
+        function stopHeartbeat() {
+            if (heartbeatTimer) {
+                clearInterval(heartbeatTimer);
+                heartbeatTimer = null;
+            }
+        }
+
+        function scheduleReconnect() {
+            if (!shouldReconnect) return;
+            if (reconnectAttempts >= maxReconnectAttempts) return;
+            const delay = 1000 * Math.pow(2, reconnectAttempts);
+            reconnectAttempts += 1;
+            setTimeout(connectPartyWs, delay);
+        }
+
+        function connectPartyWs() {
+            if (!shouldReconnect) return;
+            partyWs = new WebSocket(`${getWsBaseUrl()}/ws/party/${partyCode}/`);
+            
+            partyWs.onopen = () => {
+                console.log('Party WebSocket connected');
+                reconnectAttempts = 0;
+                startHeartbeat();
+                partyWs.send(JSON.stringify({
+                    type: 'join',
+                    nickname: currentUser.displayName,
+                    is_leader: isLeader
+                }));
+            };
+            
+            partyWs.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                console.log('Party message:', data);
+                handlePartyMessage(data);
+            };
+            
+            partyWs.onerror = (e) => {
+                console.error('Party WebSocket error:', e);
+            };
+            
+            partyWs.onclose = () => {
+                console.log('Party WebSocket closed');
+                stopHeartbeat();
+                scheduleReconnect();
+            };
+        }
+
+        function handlePartyMessage(data) {
+            switch(data.type) {
+                case 'party_update':
+                case 'member_joined':
+                case 'member_left':
+                    if (data.members) {
+                        partyMembers = data.members;
+                        updatePartyMembers(data.members);
+                    }
+                    if (data.new_leader === currentUser.displayName) {
+                        isLeader = true;
+                        localStorage.setItem('isPartyLeader', 'true');
+                        document.getElementById('leaderNotice').style.display = 'none';
+                        displayGames();
+                    }
+                    break;
+                case 'game_selected':
+                    // Leader selected a game, everyone goes to it
+                    goToGame(data.game_slug, data.room_code);
+                    break;
+            }
+        }
+
+        function updatePartyMembers(members) {
+            const container = document.getElementById('partyMembers');
+            document.getElementById('memberCount').textContent = `${members.length} member${members.length !== 1 ? 's' : ''}`;
+            
+            const readyCount = members.filter(m => m.is_ready).length;
+            const statusText = `${readyCount}/${members.length} ready`;
+            
+            container.innerHTML = members.map(member => {
+                const isMe = member.nickname === currentUser.displayName;
+                const initial = member.nickname.charAt(0).toUpperCase();
+                const readyBadge = member.is_ready 
+                    ? '<span class="ready-badge">✓ Ready</span>' 
+                    : (member.is_leader ? '<span class="not-ready-badge">Selecting game...</span>' : '<span class="not-ready-badge">Waiting...</span>');
+                
+                return `
+                    <div class="member-card ${member.is_leader ? 'leader' : ''} ${isMe ? 'me' : ''}">
+                        <div class="member-avatar">${initial}</div>
+                        <div class="member-info">
+                            <div class="name">${member.nickname} ${isMe ? '(You)' : ''}</div>
+                            <div class="role">
+                                ${member.is_leader ? '<span class="leader-badge">👑 Leader</span>' : 'Member'}
+                                ${readyBadge}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Update member count with ready status
+            document.getElementById('memberCount').textContent = `${members.length} member${members.length !== 1 ? 's' : ''} • ${statusText}`;
+        }
+
+        async function selectGame(gameSlug) {
+            if (!isLeader) return;
+            
+            document.getElementById('waitingOverlay').classList.add('active');
+            document.getElementById('waitingTitle').textContent = 'Creating Game Room...';
+            
+            try {
+                // Find the game to get its max_players
+                const selectedGame = games.find(g => g.slug === gameSlug);
+                if (!selectedGame) {
+                    throw new Error('Game not found');
+                }
+                
+                // Create a game room for this party
+                const response = await fetch(`${API_BASE}/rooms/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        game_slug: gameSlug,
+                        max_players: selectedGame.max_players
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorMsg = errorData.error || errorData.details || 'Failed to create game room';
+                    throw new Error(errorMsg);
+                }
+                
+                const room = await response.json();
+                
+                // Join the room
+                const joinResponse = await fetch(`${API_BASE}/rooms/${room.code}/join/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ nickname: currentUser.displayName })
+                });
+                
+                if (!joinResponse.ok) throw new Error('Failed to join room');
+                
+                const joinData = await joinResponse.json();
+                
+                // Save room data
+                localStorage.setItem(`room_${room.code}`, JSON.stringify({
+                    member_id: joinData.member.id,
+                    nickname: currentUser.displayName,
+                    team: joinData.member.team,
+                    game_slug: gameSlug
+                }));
+                
+                // Notify all party members via WebSocket
+                if (partyWs && partyWs.readyState === WebSocket.OPEN) {
+                    partyWs.send(JSON.stringify({
+                        type: 'start_game',
+                        game_slug: gameSlug,
+                        room_code: room.code
+                    }));
+                }
+                
+                // Go to game
+                goToGame(gameSlug, room.code);
+                
+            } catch (error) {
+                document.getElementById('waitingOverlay').classList.remove('active');
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function goToGame(gameSlug, roomCode) {
+            const gamePages = {
+                'stickman-archers': 'game.html',
+                'rock-paper-scissors': 'rock-paper-scissors.html',
+                'tic-tac-toe': 'tic-tac-toe.html',
+                'uno': 'uno.html',
+                'dots-and-boxes': 'dots.html',
+                'bluff': 'bluff.html'
+            };
+            
+            // Save party code for returning after game
+            localStorage.setItem('returnPartyCode', partyCode);
+            
+            // If not leader, join the room first
+            if (!isLeader) {
+                try {
+                    const response = await fetch(`${API_BASE}/rooms/${roomCode}/join/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ nickname: currentUser.displayName })
+                    });
+                    
+                    if (response.ok) {
+                        const joinData = await response.json();
+                        localStorage.setItem(`room_${roomCode}`, JSON.stringify({
+                            member_id: joinData.member.id,
+                            nickname: currentUser.displayName,
+                            team: joinData.member.team,
+                            game_slug: gameSlug
+                        }));
+                    }
+                } catch (e) {
+                    console.error('Error joining room:', e);
+                }
+            }
+            
+            window.location.href = `${gamePages[gameSlug] || 'game.html'}?code=${roomCode}`;
+        }
+
+        function cancelWait() {
+            document.getElementById('waitingOverlay').classList.remove('active');
+        }
+
+        function copyPartyCode() {
+            navigator.clipboard.writeText(partyCode);
+            const btn = document.querySelector('.copy-btn');
+            btn.textContent = '✅ Copied!';
+            setTimeout(() => btn.textContent = '📋 Copy Code', 2000);
+        }
+
+        function leaveParty() {
+            shouldReconnect = false;
+            stopHeartbeat();
+            if (partyWs) {
+                partyWs.send(JSON.stringify({ type: 'leave' }));
+                partyWs.close();
+            }
+            localStorage.removeItem('partyCode');
+            localStorage.removeItem('isPartyLeader');
+            localStorage.removeItem(`party_${partyCode}`);
+            window.location.href = 'party.html';
+        }
+
+        async function handleLogout() {
+            shouldReconnect = false;
+            stopHeartbeat();
+            if (partyWs) partyWs.close();
+            try {
+                await fetch(`${API_BASE}/auth/logout/`, { method: 'POST', credentials: 'include' });
+            } catch (e) {}
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

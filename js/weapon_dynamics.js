@@ -1,12 +1,25 @@
 (function () {
+    const ROLE_CATEGORIES = {
+        archer: { arrows: true, longsword: false, shield: false, miniSword: false },
+        longswordsman: { arrows: false, longsword: true, shield: false, miniSword: false },
+        'shield+sword': { arrows: false, longsword: true, shield: true, miniSword: false },
+    };
+
     function normalizeLoadout(loadout) {
+        if (loadout && typeof loadout.role_category === 'string') {
+            const key = loadout.role_category.trim().toLowerCase();
+            if (ROLE_CATEGORIES[key]) {
+                return { ...ROLE_CATEGORIES[key] };
+            }
+        }
         const hasSword = !!(loadout && loadout.longsword);
         const hasShield = !!(loadout && loadout.shield);
+        const hasMiniSword = !!(loadout && loadout.miniSword);
         return {
             arrows: !hasSword,
             longsword: hasSword,
             shield: hasSword ? hasShield : false,
-            miniSword: false,
+            miniSword: hasMiniSword && !hasSword,
         };
     }
 
@@ -20,6 +33,26 @@
             arrowSpeedMultiplier: 1.0,
             canShootArrows: l.arrows,
         };
+
+        if (l.arrows) {
+            mods.drawPowerMultiplier *= 1.05;
+            mods.arrowSpeedMultiplier *= 1.03;
+        }
+        if (l.longsword) {
+            mods.moveSpeedMultiplier *= 0.97;
+            mods.outgoingDamageMultiplier *= 1.08;
+        }
+        if (l.shield) {
+            mods.moveSpeedMultiplier *= 0.92;
+            mods.incomingDamageMultiplier *= 0.90;
+            mods.outgoingDamageMultiplier *= 0.97;
+        }
+        if (l.miniSword) {
+            mods.moveSpeedMultiplier *= 1.04;
+            mods.outgoingDamageMultiplier *= 1.04;
+            mods.drawPowerMultiplier *= 0.96;
+        }
+
         const arrowProfile = window.ArrowWeaponVisuals && typeof window.ArrowWeaponVisuals.getArrowCombatProfile === 'function'
             ? window.ArrowWeaponVisuals.getArrowCombatProfile(l)
             : { canShoot: l.arrows, baseSpeedMultiplier: 1.0 };

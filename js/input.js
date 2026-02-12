@@ -196,6 +196,17 @@
                 this.mountPressed = true;
                 e.preventDefault();
             }
+            if (key === 'r' && CONFIG.ENABLE_MANUAL_SURRENDER) {
+                // Manual respawn/surrender
+                if (window.game && window.game.localPlayer) {
+                    const player = window.game.localPlayer;
+                    // Only allow surrender if player is ragdolled
+                    if (player.ragdollParts && (!player.alive || !player.ragdollMotorsEnabled)) {
+                        window.game.requestPlayerRespawn(player.id);
+                    }
+                }
+                e.preventDefault();
+            }
             if (this.swordController && typeof this.swordController.handleKeyDown === 'function') {
                 this.swordController.handleKeyDown(e);
             }

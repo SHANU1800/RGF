@@ -11,11 +11,12 @@ from urllib.parse import urlparse
 import urllib.request
 import json
 
-BACKEND_URL = 'http://localhost:8000'
+BACKEND_URL = 'http://127.0.0.1:8000'
 
 class ProxyHTTPRequestHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         """Handle GET requests"""
+        print(f"GET request: {self.path}")
         if self.path.startswith('/api/') or self.path.startswith('/ws/'):
             # Proxy API requests to backend
             self.proxy_request()
@@ -25,11 +26,17 @@ class ProxyHTTPRequestHandler(SimpleHTTPRequestHandler):
     
     def do_POST(self):
         """Handle POST requests"""
-        if self.path.startswith('/api/'):
-            # Proxy API requests to backend
-            self.proxy_request()
-        else:
-            self.send_error(405, "Method Not Allowed")
+        try:
+            print(f"POST request: {self.path}")
+            if self.path.startswith('/api/'):
+                # Proxy API requests to backend
+                self.proxy_request()
+            else:
+                self.send_error(405, "Method Not Allowed")
+        except Exception as e:
+            print(f"Error in do_POST: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
     
     def do_OPTIONS(self):
         """Handle OPTIONS requests for CORS"""
@@ -44,6 +51,7 @@ class ProxyHTTPRequestHandler(SimpleHTTPRequestHandler):
         try:
             # Build backend URL
             backend_url = BACKEND_URL + self.path
+            print(f"Proxying to: {backend_url}")
             
             # Prepare request
             req_headers = {}
@@ -58,6 +66,7 @@ class ProxyHTTPRequestHandler(SimpleHTTPRequestHandler):
             body = None
             if content_length:
                 body = self.rfile.read(int(content_length))
+                print(f"Request body: {body}")
             
             # Create request
             request = urllib.request.Request(
@@ -67,11 +76,13 @@ class ProxyHTTPRequestHandler(SimpleHTTPRequestHandler):
                 method=self.command
             )
             
+            print(f"Making {self.command} request to backend...")
             # Make request to backend
             with urllib.request.urlopen(request) as response:
                 status_code = response.status
                 response_headers = dict(response.headers)
                 response_body = response.read()
+                print(f"Backend response: {status_code}")
             
             # Check if the response is JSON
             try:
@@ -96,8 +107,10 @@ class ProxyHTTPRequestHandler(SimpleHTTPRequestHandler):
             self.send_header('Content-Length', len(response_body))
             self.end_headers()
             self.wfile.write(response_body)
+            print("Response sent successfully")
             
         except urllib.error.HTTPError as e:
+            print(f"HTTPError: {e.code} - {e.reason}")
             self.send_response(e.code)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -107,7 +120,13 @@ class ProxyHTTPRequestHandler(SimpleHTTPRequestHandler):
             }).encode()
             self.wfile.write(error_response)
         except Exception as e:
-            self.send_error(500, f"Proxy error: {str(e)}")
+            print(f"Proxy error: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            try:
+                self.send_error(500, f"Proxy error: {str(e)}")
+            except:
+                pass
     
     def log_message(self, format, *args):
         """Log messages"""
@@ -118,12 +137,21 @@ def run_server(port=3000):
     # Change to the directory where this script is located
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
+    print(f"Working directory: {os.getcwd()}")
+    
+    class RobustHTTPServer(HTTPServer):
+        def handle_error(self, request, client_address):
+            """Handle an error gracefully."""
+            print(f"Exception happened during processing of request from {client_address}")
+            import traceback
+            traceback.print_exc()
     
     server_address = ('', port)
-    httpd = HTTPServer(server_address, ProxyHTTPRequestHandler)
+    httpd = RobustHTTPServer(server_address, ProxyHTTPRequestHandler)
     print(f"Serving frontend on http://localhost:{port}")
     print(f"Backend proxied to {BACKEND_URL}")
     print("Press Ctrl+C to stop")
+    print("")
     
     try:
         httpd.serve_forever()

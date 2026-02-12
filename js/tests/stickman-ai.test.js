@@ -110,6 +110,7 @@ input = decide(selfSword, [selfSword, swordEnemy], {
 assert.strictEqual(input.shieldBlock, true, 'Sword AI should raise shield against incoming arrows');
 assert.strictEqual(input.right, true, 'AI should dodge away from incoming horizontal arrow');
 assert.strictEqual(input.jumpPressed, true, 'AI should jump when fast horizontal arrow threatens center mass');
+assert.ok(Math.abs(input.shieldBlockAngle) < 0.15, 'Shield block angle should face incoming projectile direction');
 
 const stuckSelf = makePlayer({
     id: 'stuck-self',
@@ -149,5 +150,48 @@ const elevatedEnemy = makePlayer({
 clockMs += 50;
 input = decide(meleeSelf, [meleeSelf, elevatedEnemy], { arrows: [] });
 assert.strictEqual(input.swordAttack, 'upper_slash', 'Sword AI should pick upper slash when target is above');
+
+const exhaustedSword = makePlayer({
+    id: 'exhausted-sword',
+    x: 360,
+    y: 620,
+    stamina: 8,
+    loadout: { arrows: false, longsword: true, shield: true },
+});
+clockMs += 50;
+input = decide(exhaustedSword, [exhaustedSword, elevatedEnemy], { arrows: [] });
+assert.strictEqual(input.swordAttack, null, 'Sword AI should avoid heavy attack when stamina is too low');
+
+const predictiveSelf = makePlayer({
+    id: 'predictive-self',
+    x: 200,
+    y: 620,
+    loadout: { arrows: true, longsword: false, shield: false },
+});
+const movingEnemy = makePlayer({
+    id: 'predictive-enemy',
+    team: 'BLUE',
+    x: 610,
+    y: 620,
+    loadout: { arrows: false, longsword: false, shield: false },
+});
+clockMs += 10;
+input = decide(predictiveSelf, [predictiveSelf, movingEnemy], { arrows: [] });
+assert.strictEqual(input.bowDrawn, true, 'Predictive case should begin drawing');
+clockMs += 140;
+movingEnemy.x = 670;
+movingEnemy.y = 570;
+input = decide(predictiveSelf, [predictiveSelf, movingEnemy], { arrows: [] });
+clockMs += 920;
+movingEnemy.x = 720;
+movingEnemy.y = 520;
+input = decide(predictiveSelf, [predictiveSelf, movingEnemy], { arrows: [] });
+assert.strictEqual(input.shoot, true, 'Predictive case should release shot');
+const selfCenterY = predictiveSelf.y + predictiveSelf.height / 2;
+const enemyCenterY = movingEnemy.y + movingEnemy.height / 2;
+const selfCenterX = predictiveSelf.x + predictiveSelf.width / 2;
+const enemyCenterX = movingEnemy.x + movingEnemy.width / 2;
+const directAimAngle = Math.atan2(enemyCenterY - selfCenterY, enemyCenterX - selfCenterX);
+assert.ok(input.shootAngle < directAimAngle, 'Predictive shooting should lead upward against rising targets');
 
 console.log('stickman AI tests passed');

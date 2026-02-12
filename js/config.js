@@ -110,4 +110,15 @@ const CONFIG = {
         { y: 620, height: 12, x1: 5602, x2: 5770, render: false },   // BLUE stair 7
         { y: 660, height: 12, x1: 5578, x2: 5770, render: false }    // BLUE stair 8
     ],
+    // Active Ragdoll System
+    RAGDOLL_ALWAYS_ACTIVE: true,              // Players are ragdolls from spawn (MDickie-style)
+    RAGDOLL_MOTOR_STRENGTH: 0.8,              // How strongly ragdoll tries to stand/balance (0-1)
+    RAGDOLL_MOTOR_SPEED: 320,                 // Horizontal movement speed for ragdoll motors
+    RAGDOLL_JUMP_IMPULSE: 850,                // Jump force for ragdoll
+    RAGDOLL_BALANCE_STRENGTH: 0.6,            // Angular correction to stay upright (0-1)
+    RAGDOLL_STILLNESS_THRESHOLD: 2.0,         // Velocity below which counts as still (px/s)
+    RAGDOLL_RESPAWN_TIMEOUT: 3.0,             // Seconds of inactivity before auto-respawn
+    ARROW_SEVER_DAMAGE_MIN: 35,               // Minimum arrow damage to sever limb
+    SEVERED_LEG_SPEED_PENALTY: 0.5,           // Movement multiplier with one leg
+    ENABLE_MANUAL_SURRENDER: true,            // Allow manual respawn with R key
 };

@@ -284,7 +284,7 @@
                 `<div class="player-item">${p.nickname}</div>`
             ).join('');
             document.getElementById('playerCount').textContent = `${lobby.player_count} / ${lobby.max_players} Players`;
-            document.getElementById('startGameBtn').disabled = lobby.player_count < 2;
+            document.getElementById('startGameBtn').disabled = lobby.player_count < 1;
         }
 
         function startGame() { ws.send(JSON.stringify({ type: 'start_game' })); }

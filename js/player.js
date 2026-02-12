@@ -48,6 +48,10 @@ class Player {
         this.ragdollQueuedImpact = null;
         this.ragdollSevered = null;
         this.ragdollQueuedSevers = [];
+        this.ragdollMotorsEnabled = CONFIG.RAGDOLL_ALWAYS_ACTIVE || false;
+        this.ragdollInactiveTimer = 0;
+        this.canWalk = true;
+        this.canUseWeapon = { left: true, right: true };
         this.facingDir = team === 'RED' ? 1 : -1;
         this.mountedHorseId = null;
         this.usingBallistaSide = null;
@@ -79,6 +83,11 @@ class Player {
         this.ledgeHangTimer = 0;
         
         this.color = team === 'RED' ? '#e74c3c' : '#3498db';
+        
+        // Spawn ragdoll immediately if active ragdoll mode enabled
+        if (CONFIG.RAGDOLL_ALWAYS_ACTIVE) {
+            this.spawnRagdoll({ skipInitialImpulse: true });
+        }
     }
     
     setLoadout(loadout) {
@@ -94,6 +103,18 @@ class Player {
     }
     
     update(input, dt) {
+        // Active ragdoll mode: update ragdoll physics + motor forces
+        if (this.ragdollMotorsEnabled && this.ragdollParts) {
+            this.updateRagdoll(dt);
+            if (this.alive && input) {
+                this.applyRagdollMotorForces(input, dt);
+            }
+            this.updatePlayerPositionFromRagdoll();
+            this.checkLimbAbilities();
+            return;
+        }
+        
+        // Dead ragdoll: just physics simulation
         if (!this.alive) {
             this.updateRagdoll(dt);
             return;
@@ -770,13 +791,18 @@ class Player {
             sleepTimer: 0,
             extraIterations: 2
         };
-        this.ragdollSevered = {};
-        this._applyRagdollImpulseToParts(parts, {
-            horizontal: Number(this.facingDir || 1) * 18,
-            vertical: -10,
-            chaos: 6,
-            pivotY: cy
-        });
+        this.ragdollSevered = this.ragdollSevered || {};
+        
+        // Skip initial impulse for active ragdoll spawn
+        if (!options.skipInitialImpulse) {
+            this._applyRagdollImpulseToParts(parts, {
+                horizontal: Number(this.facingDir || 1) * 18,
+                vertical: -10,
+                chaos: 6,
+                pivotY: cy
+            });
+        }
+        
         if (this.ragdollQueuedImpact) {
             this.applyRagdollImpact(this.ragdollQueuedImpact);
             this.ragdollQueuedImpact = null;
@@ -882,6 +908,175 @@ class Player {
             });
         }
         this.ragdollState = state;
+        
+        // Inactivity detection for respawn
+        if (!this.alive || !this.ragdollMotorsEnabled) {
+            this._checkRagdollInactivity(step, touchedFloor, energy);
+        }
+    }
+
+    _checkRagdollInactivity(dt, touchedFloor, energy) {
+        const threshold = Number(CONFIG.RAGDOLL_STILLNESS_THRESHOLD || 2.0);
+        const timeout = Number(CONFIG.RAGDOLL_RESPAWN_TIMEOUT || 3.0);
+        
+        // Calculate average velocity
+        const avgEnergy = energy / Math.max(1, this.ragdollParts.length);
+        
+        // Check if ragdoll is still
+        if (avgEnergy < threshold && touchedFloor) {
+            this.ragdollInactiveTimer += dt;
+        } else {
+            this.ragdollInactiveTimer = 0;
+        }
+        
+        // Trigger respawn after timeout
+        if (this.ragdollInactiveTimer >= timeout && this.isMe) {
+            this._signalRespawnNeeded();
+        }
+    }
+
+    _signalRespawnNeeded() {
+        // Signal to game or server that respawn is needed
+        // This will be handled by the game instance
+        if (window.game && typeof window.game.requestPlayerRespawn === 'function') {
+            window.game.requestPlayerRespawn(this.id);
+        }
+        // Reset timer to avoid spamming
+        this.ragdollInactiveTimer = 0;
+    }
+
+    applyRagdollMotorForces(input, dt) {
+        if (!this.ragdollParts || !input) return;
+        
+        const motorStrength = Number(CONFIG.RAGDOLL_MOTOR_STRENGTH || 0.8);
+        const motorSpeed = Number(CONFIG.RAGDOLL_MOTOR_SPEED || 320);
+        const balanceStrength = Number(CONFIG.RAGDOLL_BALANCE_STRENGTH || 0.6);
+        const jumpImpulse = Number(CONFIG.RAGDOLL_JUMP_IMPULSE || 850);
+        
+        // Find key body parts
+        const chest = this.ragdollParts.find(p => p.type === 'chest');
+        const pelvis = this.ragdollParts.find(p => p.type === 'pelvis');
+        const head = this.ragdollParts.find(p => p.type === 'head');
+        const lLeg = this.ragdollParts.find(p => p.type === 'lLowerLeg');
+        const rLeg = this.ragdollParts.find(p => p.type === 'rLowerLeg');
+        
+        if (!chest || !pelvis) return;
+        
+        // Check if feet are on ground
+        const onGround = this._areRagdollFeetOnGround();
+        
+        // Balance/upright force: keep torso vertical
+        if (chest && pelvis && !this.ragdollSevered['chest']) {
+            const dx = chest.x - pelvis.x;
+            const dy = chest.y - pelvis.y;
+            const currentAngle = Math.atan2(dx, dy); // Angle from vertical
+            const targetAngle = 0; // Vertical
+            const angleDiff = currentAngle - targetAngle;
+            
+            // Apply torque to straighten up
+            const torqueStrength = balanceStrength * motorStrength * 180;
+            chest.prevX -= Math.sin(angleDiff) * torqueStrength * dt;
+            pelvis.prevX += Math.sin(angleDiff) * torqueStrength * dt;
+        }
+        
+        // Horizontal movement
+        const dir = (input.left ? -1 : 0) + (input.right ? 1 : 0);
+        if (dir !== 0 && this.canWalk && onGround) {
+            const moveForce = dir * motorSpeed * motorStrength * dt;
+            if (chest) chest.prevX -= moveForce * 0.6;
+            if (pelvis) pelvis.prevX -= moveForce * 0.4;
+            this.facingDir = dir;
+        }
+        
+        // Jump
+        if (input.jumpPressed && onGround && this.canWalk) {
+            const jumpForce = jumpImpulse;
+            if (chest) chest.prevY += jumpForce * dt * 0.4;
+            if (pelvis) pelvis.prevY += jumpForce * dt * 0.5;
+            if (lLeg && !this.ragdollSevered['lLowerLeg']) lLeg.prevY += jumpForce * dt * 0.05;
+            if (rLeg && !this.ragdollSevered['rLowerLeg']) rLeg.prevY += jumpForce * dt * 0.05;
+        }
+        
+        // Update aim angle
+        this.aimAngle = input.aimAngle || 0;
+    }
+
+    _areRagdollFeetOnGround() {
+        if (!this.ragdollParts) return false;
+        const feet = this.ragdollParts.filter(p => 
+            p.type === 'lLowerLeg' || p.type === 'rLowerLeg'
+        );
+        return feet.some(foot => {
+            const floor = findLandingFloor(foot.y + foot.radius - 2, foot.y + foot.radius, foot.x, 1, true);
+            return !!floor;
+        });
+    }
+
+    updatePlayerPositionFromRagdoll() {
+        if (!this.ragdollParts || this.ragdollParts.length === 0) return;
+        
+        // Set player position to average of torso parts
+        const torsoParts = this.ragdollParts.filter(p => 
+            p.type === 'chest' || p.type === 'pelvis' || p.type === 'head'
+        );
+        
+        if (torsoParts.length === 0) return;
+        
+        const avgX = torsoParts.reduce((sum, p) => sum + p.x, 0) / torsoParts.length;
+        const avgY = torsoParts.reduce((sum, p) => sum + p.y, 0) / torsoParts.length;
+        
+        // Calculate ragdoll bounds
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        this.ragdollParts.forEach(p => {
+            minX = Math.min(minX, p.x - p.radius);
+            maxX = Math.max(maxX, p.x + p.radius);
+            minY = Math.min(minY, p.y - p.radius);
+            maxY = Math.max(maxY, p.y + p.radius);
+        });
+        
+        this.x = minX;
+        this.y = minY;
+        this.width = maxX - minX;
+        this.height = maxY - minY;
+        
+        // Calculate velocity from ragdoll movement
+        const chest = this.ragdollParts.find(p => p.type === 'chest');
+        if (chest) {
+            this.vx = (chest.x - chest.prevX) / (1/60);
+            this.vy = (chest.y - chest.prevY) / (1/60);
+        }
+    }
+
+    checkLimbAbilities() {
+        if (!this.ragdollSevered) return;
+        
+        // Check leg abilities
+        const leftLegSevered = this.ragdollSevered['lUpperLeg'] || this.ragdollSevered['lLowerLeg'];
+        const rightLegSevered = this.ragdollSevered['rUpperLeg'] || this.ragdollSevered['rLowerLeg'];
+        
+        if (leftLegSevered && rightLegSevered) {
+            this.canWalk = false; // Can't walk without both legs
+        } else if (leftLegSevered || rightLegSevered) {
+            // One leg missing - could implement hobbling later
+            this.canWalk = true;
+        } else {
+            this.canWalk = true;
+        }
+        
+        // Check arm abilities
+        const leftArmSevered = this.ragdollSevered['lUpperArm'] || this.ragdollSevered['lLowerArm'];
+        const rightArmSevered = this.ragdollSevered['rUpperArm'] || this.ragdollSevered['rLowerArm'];
+        
+        this.canUseWeapon = {
+            left: !leftArmSevered,
+            right: !rightArmSevered
+        };
+        
+        // If both arms severed, disable weapons
+        if (leftArmSevered && rightArmSevered) {
+            this.bowDrawn = false;
+            this.drawPower = 0;
+        }
     }
 }
 
@@ -1040,6 +1235,12 @@ class Arrow {
     checkCollision(player) {
         if (!this.active || !player.alive) return false;
 
+        // For active ragdoll mode, check collision with ragdoll parts
+        if (player.ragdollParts && CONFIG.RAGDOLL_ALWAYS_ACTIVE) {
+            return this.checkRagdollCollision(player);
+        }
+
+        // Fallback to AABB collision for traditional mode
         const x0 = Number.isFinite(Number(this.prevX)) ? Number(this.prevX) : Number(this.x);
         const y0 = Number.isFinite(Number(this.prevY)) ? Number(this.prevY) : Number(this.y);
         const x1 = Number(this.x);
@@ -1050,6 +1251,66 @@ class Arrow {
         const bottom = top + Number(player.height || CONFIG.PLAYER_HEIGHT || 80);
 
         return Arrow.segmentIntersectsRect(x0, y0, x1, y1, left, right, top, bottom);
+    }
+
+    checkRagdollCollision(player) {
+        if (!player.ragdollParts) return false;
+        
+        const x0 = Number.isFinite(Number(this.prevX)) ? Number(this.prevX) : Number(this.x);
+        const y0 = Number.isFinite(Number(this.prevY)) ? Number(this.prevY) : Number(this.y);
+        const x1 = Number(this.x);
+        const y1 = Number(this.y);
+        
+        // Check each ragdoll part for collision
+        for (let i = 0; i < player.ragdollParts.length; i++) {
+            const part = player.ragdollParts[i];
+            if (!part) continue;
+            
+            // Skip severed parts
+            if (player.ragdollSevered && player.ragdollSevered[part.type]) continue;
+            
+            // Check if arrow line segment intersects with part's circle
+            const hit = Arrow.segmentIntersectsCircle(
+                x0, y0, x1, y1,
+                part.x, part.y, part.radius
+            );
+            
+            if (hit) {
+                // Return hit data with the specific part that was hit
+                this.hitPart = part.type;
+                this.hitPoint = { x: part.x, y: part.y };
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    static segmentIntersectsCircle(x0, y0, x1, y1, cx, cy, radius) {
+        // Vector from line start to end
+        const dx = x1 - x0;
+        const dy = y1 - y0;
+        
+        // Vector from line start to circle center
+        const fx = x0 - cx;
+        const fy = y0 - cy;
+        
+        // Quadratic formula components for line-circle intersection
+        const a = dx * dx + dy * dy;
+        const b = 2 * (fx * dx + fy * dy);
+        const c = fx * fx + fy * fy - radius * radius;
+        
+        const discriminant = b * b - 4 * a * c;
+        
+        if (discriminant < 0) return false; // No intersection
+        
+        // Calculate intersection parameter t
+        const sqrtDisc = Math.sqrt(discriminant);
+        const t1 = (-b - sqrtDisc) / (2 * a);
+        const t2 = (-b + sqrtDisc) / (2 * a);
+        
+        // Check if intersection is within segment (t between 0 and 1)
+        return (t1 >= 0 && t1 <= 1) || (t2 >= 0 && t2 <= 1) || (t1 < 0 && t2 > 1);
     }
 
     static segmentIntersectsRect(x0, y0, x1, y1, left, right, top, bottom) {

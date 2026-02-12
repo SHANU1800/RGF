@@ -2609,16 +2609,48 @@
         const source = String(event && event.source || 'arrow');
         const finalDamage = Math.max(0, Number(context.finalDamage || event.final_damage || event.damage || 0));
         const hitType = String(context.hitType || event.hit_type || 'body');
-        if (source !== 'sword' && source !== 'ballista') return;
-        if (finalDamage < 28 && hitType !== 'head') return;
+        
+        // Enable arrow severing for active ragdoll mode
+        const isArrow = source === 'arrow';
+        const isSword = source === 'sword';
+        const isBallista = source === 'ballista';
+        const ragdollMode = CONFIG.RAGDOLL_ALWAYS_ACTIVE || false;
+        
+        // Determine sever thresholds based on source
+        let minDamage = 28;
+        let requiresForce = true;
+        
+        if (isArrow && ragdollMode) {
+            minDamage = Number(CONFIG.ARROW_SEVER_DAMAGE_MIN || 35);
+            requiresForce = true;
+        } else if (isSword || isBallista) {
+            minDamage = 28;
+            requiresForce = true;
+        } else {
+            return; // Non-arrow, non-sword, non-ballista sources don't sever
+        }
+        
+        if (finalDamage < minDamage && hitType !== 'head') return;
 
         const healthBeforeHit = Math.max(1, Number(targetPlayer.health || 100));
         const likelyLethal = finalDamage >= healthBeforeHit * 0.78;
-        const forceful = finalDamage >= 34 || hitType === 'head' || source === 'ballista';
-        if (!likelyLethal && !forceful) return;
+        const forceful = finalDamage >= (minDamage + 6) || hitType === 'head' || isBallista;
+        
+        if (requiresForce && !likelyLethal && !forceful) return;
 
-        const limb = this._pickSeverLimb(targetPlayer, event, context);
+        // For arrows in ragdoll mode, try to use hit part from collision
+        let limb = null;
+        if (isArrow && ragdollMode && event.hitPart) {
+            limb = this._mapHitPartToLimb(event.hitPart);
+        }
+        
+        // Fallback to random selection
+        if (!limb) {
+            limb = this._pickSeverLimb(targetPlayer, event, context);
+        }
+        
         if (!limb) return;
+        
         const dir = (this && typeof this._resolveHitImpactDirection === 'function')
             ? this._resolveHitImpactDirection(targetPlayer, event)
             : Game.prototype._resolveHitImpactDirection.call(this, targetPlayer, event);
@@ -2629,6 +2661,21 @@
                 ? Number(context.hitPoint.y)
                 : undefined,
         });
+    }
+
+    _mapHitPartToLimb(partType) {
+        // Map ragdoll part types to severable limbs
+        const partToLimb = {
+            'lUpperArm': 'lArm',
+            'lLowerArm': 'lArm',
+            'rUpperArm': 'rArm',
+            'rLowerArm': 'rArm',
+            'lUpperLeg': 'lLeg',
+            'lLowerLeg': 'lLeg',
+            'rUpperLeg': 'rLeg',
+            'rLowerLeg': 'rLeg',
+        };
+        return partToLimb[partType] || null;
     }
 
     _clearPlayerGoreState(playerId) {
@@ -3167,6 +3214,44 @@
             stickmanUpdates: renderBudget.stickmanUpdates,
             lodCounts: renderBudget.lodCounts,
         };
+    }
+    
+    requestPlayerRespawn(playerId) {
+        // Client-side request to respawn player
+        // In authoritative mode, this would send a request to the server
+        // For now, handle it locally for testing
+        if (CONFIG.AUTHORITATIVE_MODE && this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'request_respawn',
+                player_id: playerId
+            }));
+        } else {
+            // Local mode: handle respawn immediately
+            const player = this.players.get(playerId);
+            if (player) {
+                this._handleLocalRespawn(player);
+            }
+        }
+    }
+    
+    _handleLocalRespawn(player) {
+        // Reset player to spawn position
+        const center = CONFIG.GAME_WIDTH / 2;
+        player.x = player.team === 'RED' ? center - 280 : center + 240;
+        player.y = CONFIG.GROUND_Y - CONFIG.PLAYER_HEIGHT;
+        player.vx = 0;
+        player.vy = 0;
+        player.health = 100;
+        player.alive = true;
+        player.ragdollMotorsEnabled = CONFIG.RAGDOLL_ALWAYS_ACTIVE || false;
+        player.ragdollInactiveTimer = 0;
+        player.canWalk = true;
+        player.canUseWeapon = { left: true, right: true };
+        
+        // Respawn ragdoll clean
+        if (player.ragdollParts) {
+            player.spawnRagdoll({ skipInitialImpulse: true });
+        }
     }
     
     gameLoop() {

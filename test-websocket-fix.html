@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+    
+    <script>
+        const roomCode = 'C7H28U';
+        const ws = new WebSocket(`ws://localhost:8000/ws/game/${roomCode}/`);
+        
+        ws.onopen = () => {
+            document.getElementById('status').textContent = '✅ Connected!';
+            document.getElementById('status').style.color = 'green';
+            ws.send(JSON.stringify({type: 'join', player_id: 'test123', nickname: 'TestPlayer'}));
+        };
+        
+        ws.onerror = (error) => {
+            document.getElementById('status').textContent = '❌ Connection Error';
+            document.getElementById('status').style.color = 'red';
+            console.error('WebSocket error:', error);
+        };
+        
+        ws.onmessage = (event) => {
+            const msg = document.createElement('div');
+            msg.textContent = `Received: ${event.data}`;
+            document.getElementById('messages').appendChild(msg);
+        };
+        
+        ws.onclose = () => {
+            document.getElementById('status').textContent = '⚠️ Disconnected';
+            document.getElementById('status').style.color = 'orange';
+        };
+    </script>
+</body>
+</html>
